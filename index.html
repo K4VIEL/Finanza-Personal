@@ -18,19 +18,26 @@
             --border: #334155;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: var(--primary); color: var(--text); padding: 15px; display: flex; justify-content: center; }
-        .container { width: 100%; max-width: 480px; }
+        body { background-color: var(--primary); color: var(--text); padding: 15px; display: flex; justify-content: center; min-height: 100vh; align-items: center; }
+        .container { width: 100%; max-width: 480px; display: none; }
+        .container.active { display: block; }
+        
+        /* Pantalla de Login */
+        #loginScreen { width: 100%; max-width: 380px; background: var(--card-bg); padding: 25px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.4); text-align: center; }
+        #loginScreen h2 { margin-bottom: 8px; font-size: 20px; color: var(--accent); }
+        #loginScreen p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         h1 { font-size: 18px; color: var(--text); }
         
-        /* Pestañas de navegación adaptadas a 4 opciones */
+        /* Pestañas de navegación */
         .tabs { display: flex; background: var(--card-bg); border-radius: 10px; padding: 4px; margin-bottom: 15px; border: 1px solid var(--border); overflow-x: auto; }
         .tab { flex: 1; text-align: center; padding: 8px 4px; font-size: 11px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: 8px; transition: 0.2s; white-space: nowrap; }
         .tab.active { background: var(--accent); color: white; }
 
         .card { background: var(--card-bg); padding: 16px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); margin-bottom: 15px; border: 1px solid var(--border); }
         
-        /* Contenedor de Alertas Modernas estilo Banner */
+        /* Alertas Modernas */
         #alertContainer { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
         .alert-banner { background: rgba(245, 158, 11, 0.15); border: 1px solid var(--warning); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; animation: fadeIn 0.3s ease; }
         .alert-banner.danger { background: rgba(239, 68, 68, 0.15); border-color: var(--danger); }
@@ -38,8 +45,7 @@
         .alert-content strong { color: var(--warning); }
         .alert-banner.danger .alert-content strong { color: var(--danger); }
         .alert-close { background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; padding: 0 4px; }
-        .alert-close:hover { color: var(--text); }
-
+        
         .balance-title { font-size: 12px; color: var(--text-muted); text-align: center; text-transform: uppercase; letter-spacing: 1px; }
         .balance-amount { text-align: center; font-size: 28px; font-weight: 800; color: var(--accent); margin: 5px 0 12px 0; }
         
@@ -48,7 +54,7 @@
         .account-badge span { display: block; font-size: 10px; color: var(--text-muted); }
         .account-badge strong { font-size: 13px; }
 
-        .form-group { margin-bottom: 10px; }
+        .form-group { margin-bottom: 10px; text-align: left; }
         label { display: block; margin-bottom: 3px; font-weight: 600; font-size: 12px; color: var(--text-muted); }
         select, input { width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; outline: none; }
         select:focus, input:focus { border-color: var(--accent); }
@@ -67,13 +73,10 @@
         .delete-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 4px; }
         .delete-btn:hover { color: var(--danger); }
         .pay-btn { background: rgba(16, 185, 129, 0.15); border: 1px solid var(--accent); color: var(--accent); border-radius: 6px; padding: 4px 8px; font-size: 11px; font-weight: bold; cursor: pointer; }
-        .pay-btn:hover { background: var(--accent); color: white; }
         
-        /* Estilos Tarjetas y Deudas */
-        .credit-card-box, .debt-box { background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; position: relative; }
+        .credit-card-box, .debt-box { background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
         .cc-header, .debt-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 6px; color: var(--warning); }
         .cc-details, .debt-details { display: grid; grid-template-columns: 1fr 1fr; font-size: 11px; color: var(--text-muted); gap: 4px; }
-        .cc-details strong, .debt-details strong { color: var(--text); }
         
         .view-section { display: none; }
         .view-section.active { display: block; }
@@ -84,10 +87,26 @@
 </head>
 <body>
 
-    <div class="container">
+    <!-- PANTALLA DE ACCESO PROTEGIDO -->
+    <div id="loginScreen">
+        <h2>🔒 Finanzas Pro Cloud</h2>
+        <p>Ingresa tu clave de acceso para ver tus finanzas</p>
+        <div class="form-group">
+            <label>Contraseña Secreta</label>
+            <input type="password" id="accessPassword" placeholder="••••••••">
+        </div>
+        <button class="btn-primary" onclick="verifyAccess()">Entrar al Panel</button>
+        <p id="loginError" style="color: var(--danger); font-size: 12px; margin-top: 10px; display: none;">Contraseña incorrecta</p>
+    </div>
+
+    <!-- APLICACIÓN PRINCIPAL -->
+    <div class="container" id="mainAppContainer">
         <header>
             <h1>💼 Finanzas Pro Cloud</h1>
-            <span id="syncStatus" style="font-size: 11px; color: var(--accent);">Conectando...</span>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <span id="syncStatus" style="font-size: 11px; color: var(--accent);">Conectando...</span>
+                <button onclick="logout()" style="background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger); padding: 4px 8px; font-size: 11px; border-radius: 6px;">Salir</button>
+            </div>
         </header>
 
         <!-- Pestañas de navegación -->
@@ -98,10 +117,10 @@
             <div class="tab" onclick="switchTab('salary')">Sueldo</div>
         </div>
 
-        <!-- CONTENEDOR DE ALERTAS INTEGRADAS (MODERNAS) -->
+        <!-- CONTENEDOR DE ALERTAS -->
         <div id="alertContainer"></div>
 
-        <!-- VISTA 1: PANEL GENERAL Y TRANSACCIONES -->
+        <!-- VISTA 1: PANEL -->
         <div id="view-dashboard" class="view-section active">
             <div class="card">
                 <div class="balance-title">Balance Neto Disponible</div>
@@ -173,76 +192,45 @@
             </div>
         </div>
 
-        <!-- VISTA 2: TARJETAS DE CRÉDITO -->
+        <!-- VISTA 2: TARJETAS -->
         <div id="view-cards" class="view-section">
             <div class="card">
                 <div class="section-title"><span>💳 Registrar Tarjeta de Crédito</span></div>
-                <div class="form-group">
-                    <label>Nombre de la Tarjeta</label>
-                    <input type="text" id="ccName" placeholder="Ej. Visa Oro / Mastercard">
-                </div>
-                <div class="form-group">
-                    <label>Límite de Crédito ($)</label>
-                    <input type="number" id="ccLimit" placeholder="1000.00">
-                </div>
-                <div class="form-group">
-                    <label>Día de Corte (Ej. 15)</label>
-                    <input type="number" id="ccCutDay" placeholder="15" min="1" max="31">
-                </div>
-                <div class="form-group">
-                    <label>Día Máximo de Pago (Ej. 25)</label>
-                    <input type="number" id="ccPayDay" placeholder="25" min="1" max="31">
-                </div>
+                <div class="form-group"><label>Nombre de la Tarjeta</label><input type="text" id="ccName" placeholder="Ej. Visa Oro"></div>
+                <div class="form-group"><label>Límite de Crédito ($)</label><input type="number" id="ccLimit" placeholder="1000.00"></div>
+                <div class="form-group"><label>Día de Corte</label><input type="number" id="ccCutDay" placeholder="15" min="1" max="31"></div>
+                <div class="form-group"><label>Día Máximo de Pago</label><input type="number" id="ccPayDay" placeholder="25" min="1" max="31"></div>
                 <button class="btn-primary" onclick="saveCreditCard()">Guardar Tarjeta</button>
             </div>
-
             <div class="card">
-                <div class="section-title"><span>Mis Tarjetas y Consumos Actuales</span></div>
-                <div id="creditCardsList">
-                    <div class="empty-state">No hay tarjetas registradas</div>
-                </div>
+                <div class="section-title"><span>Mis Tarjetas</span></div>
+                <div id="creditCardsList"><div class="empty-state">No hay tarjetas registradas</div></div>
             </div>
         </div>
 
-        <!-- VISTA 3: DEUDAS PERSONALES -->
+        <!-- VISTA 3: DEUDAS -->
         <div id="view-debts" class="view-section">
             <div class="card">
                 <div class="section-title"><span>📝 Registrar Deuda Personal</span></div>
-                <div class="form-group">
-                    <label>¿A quién le debes? (Acreedor)</label>
-                    <input type="text" id="debtCreditor" placeholder="Ej. Juan Pérez / Amigo / Familiar">
-                </div>
-                <div class="form-group">
-                    <label>Monto Total Adeudado ($)</label>
-                    <input type="number" id="debtAmount" placeholder="150.00" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>Nota / Motivo</label>
-                    <input type="text" id="debtNote" placeholder="Ej. Préstamo para repuesto de moto">
-                </div>
+                <div class="form-group"><label>Acreedor (¿A quién le debes?)</label><input type="text" id="debtCreditor" placeholder="Ej. Juan Pérez"></div>
+                <div class="form-group"><label>Monto Total Adeudado ($)</label><input type="number" id="debtAmount" placeholder="150.00" step="0.01"></div>
+                <div class="form-group"><label>Nota / Motivo</label><input type="text" id="debtNote" placeholder="Ej. Préstamo"></div>
                 <button class="btn-primary btn-expense" onclick="savePersonalDebt()">Guardar Deuda 📉</button>
             </div>
-
             <div class="card">
                 <div class="section-title">
-                    <span>Control de Deudas (Saldo Restante)</span>
+                    <span>Control de Deudas</span>
                     <strong id="totalDebtAmount" style="color: var(--danger); font-size: 13px;">$0.00</strong>
                 </div>
-                <div id="personalDebtsList">
-                    <div class="empty-state">No hay deudas registradas</div>
-                </div>
+                <div id="personalDebtsList"><div class="empty-state">No hay deudas registradas</div></div>
             </div>
         </div>
 
-        <!-- VISTA 4: SUELDO MENSUAL -->
+        <!-- VISTA 4: SUELDO -->
         <div id="view-salary" class="view-section">
             <div class="card">
-                <div class="section-title"><span>💰 Configurar Sueldo Mensual Fijo</span></div>
-                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Establece tu sueldo base para ingresarlo automáticamente a tu cuenta bancaria cuando lo desees.</p>
-                <div class="form-group">
-                    <label>Monto de Sueldo Mensual ($)</label>
-                    <input type="number" id="salaryAmount" placeholder="1500.00" step="0.01">
-                </div>
+                <div class="section-title"><span>💰 Configurar Sueldo Mensual</span></div>
+                <div class="form-group"><label>Monto de Sueldo Mensual ($)</label><input type="number" id="salaryAmount" placeholder="1500.00" step="0.01"></div>
                 <div class="form-group">
                     <label>Cuenta de Destino</label>
                     <select id="salaryAccount">
@@ -256,6 +244,9 @@
     </div>
 
     <script>
+        // 🔑 CAMBIA AQUÍ TU CONTRASEÑA SECRETA:
+        const MASTER_PASSWORD = "mi_clave_secreta_123";
+
         const SUPABASE_URL = 'https://flxsufbwttizbqtymqrb.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_5R_cgDMLtMh9JQPpUow5YQ_epltv-V6';
         
@@ -266,10 +257,37 @@
         let creditCards = [];
         let personalDebts = [];
 
+        // Comprobar si ya inició sesión antes en este dispositivo
+        window.onload = function() {
+            if (localStorage.getItem("finanzas_auth") === "true") {
+                unlockApp();
+            }
+        };
+
+        function verifyAccess() {
+            const inputPass = document.getElementById('accessPassword').value;
+            if (inputPass === MASTER_PASSWORD) {
+                localStorage.setItem("finanzas_auth", "true");
+                unlockApp();
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+            }
+        }
+
+        function unlockApp() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainAppContainer').classList.add('active');
+            fetchData();
+        }
+
+        function logout() {
+            localStorage.removeItem("finanzas_auth");
+            location.reload();
+        }
+
         function switchTab(tabName) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-            
             const tabsMap = { dashboard: 0, cards: 1, debts: 2, salary: 3 };
             document.querySelectorAll('.tab')[tabsMap[tabName]].classList.add('active');
             document.getElementById(`view-${tabName}`).classList.add('active');
@@ -278,12 +296,8 @@
         function toggleCardSelector() {
             const account = document.getElementById('account').value;
             const selectorGroup = document.getElementById('cardSelectorGroup');
-            if (account === 'Tarjeta de Crédito') {
-                selectorGroup.style.display = 'block';
-                populateCardDropdown();
-            } else {
-                selectorGroup.style.display = 'none';
-            }
+            selectorGroup.style.display = (account === 'Tarjeta de Crédito') ? 'block' : 'none';
+            if (account === 'Tarjeta de Crédito') populateCardDropdown();
         }
 
         function populateCardDropdown() {
@@ -303,7 +317,6 @@
 
         async function fetchData() {
             document.getElementById('syncStatus').textContent = 'Sincronizando...';
-            
             const [txRes, ccRes, debtRes] = await Promise.all([
                 _supabase.from('transactions').select('*').order('created_at', { ascending: false }),
                 _supabase.from('credit_cards').select('*'),
@@ -311,14 +324,12 @@
             ]);
 
             if (txRes.error || ccRes.error || debtRes.error) {
-                console.error('Error al sincronizar');
                 document.getElementById('syncStatus').textContent = 'Error de conexión';
             } else {
                 transactions = txRes.data || [];
                 creditCards = ccRes.data || [];
                 personalDebts = debtRes.data || [];
                 document.getElementById('syncStatus').textContent = '🟢 En línea';
-                
                 toggleCardSelector();
                 updateUI();
                 renderCards();
@@ -334,23 +345,17 @@
             const note = document.getElementById('note').value;
             let credit_card_name = null;
 
-            if (!amount || amount <= 0) {
-                alert("Por favor ingresa un monto válido.");
-                return;
-            }
-
+            if (!amount || amount <= 0) { alert("Ingresa un monto válido."); return; }
             if (account === 'Tarjeta de Crédito') {
                 credit_card_name = document.getElementById('specificCard').value;
                 if (!credit_card_name || credit_card_name.includes('No hay tarjetas')) {
-                    alert("Por favor registra o selecciona una tarjeta de crédito válida.");
+                    alert("Selecciona una tarjeta de crédito válida.");
                     return;
                 }
             }
 
             const { error } = await _supabase.from('transactions').insert([{ type, account, category, amount, note, credit_card_name }]);
-            if (error) {
-                alert('Error al guardar transacción.');
-            } else {
+            if (!error) {
                 document.getElementById('amount').value = '';
                 document.getElementById('note').value = '';
                 fetchData();
@@ -363,26 +368,20 @@
             const cut_day = parseInt(document.getElementById('ccCutDay').value);
             const pay_day = parseInt(document.getElementById('ccPayDay').value);
 
-            if(!name || isNaN(limit)) {
-                alert("Completa el nombre y el límite de la tarjeta.");
-                return;
-            }
+            if(!name || isNaN(limit)) { alert("Completa los datos de la tarjeta."); return; }
 
             const { error } = await _supabase.from('credit_cards').insert([{ name, "limit": limit, cut_day, pay_day }]);
-            if(error) {
-                alert("Error al guardar tarjeta (posible nombre duplicado).");
-            } else {
+            if(!error) {
                 document.getElementById('ccName').value = '';
                 document.getElementById('ccLimit').value = '';
                 document.getElementById('ccCutDay').value = '';
                 document.getElementById('ccPayDay').value = '';
                 fetchData();
-                alert("¡Tarjeta guardada con éxito!");
             }
         }
 
         async function deleteCreditCard(id) {
-            if(confirm("¿Eliminar esta tarjeta de crédito?")) {
+            if(confirm("¿Eliminar tarjeta?")) {
                 const { error } = await _supabase.from('credit_cards').delete().eq('id', id);
                 if(!error) fetchData();
             }
@@ -393,57 +392,36 @@
             const amount = parseFloat(document.getElementById('debtAmount').value);
             const note = document.getElementById('debtNote').value;
 
-            if(!creditor || !amount) {
-                alert("Indica a quién le debes y el monto.");
-                return;
-            }
+            if(!creditor || !amount) { alert("Indica acreedor y monto."); return; }
 
-            const newDebt = { creditor, original_amount: amount, remaining_amount: amount, note };
-            const { error } = await _supabase.from('personal_debts').insert([newDebt]);
-            if(error) {
-                alert("Error al guardar la deuda.");
-            } else {
+            const { error } = await _supabase.from('personal_debts').insert([{ creditor, original_amount: amount, remaining_amount: amount, note }]);
+            if(!error) {
                 document.getElementById('debtCreditor').value = '';
                 document.getElementById('debtAmount').value = '';
                 document.getElementById('debtNote').value = '';
                 fetchData();
-                alert("¡Deuda registrada con éxito!");
             }
         }
 
         async function makeDebtPayment(id, currentRemaining) {
-            const paymentInput = prompt(`¿Cuánto deseas abonar a esta deuda?\nSaldo pendiente actual: $${currentRemaining.toFixed(2)}`);
+            const paymentInput = prompt(`Abonar a deuda (Pendiente: $${currentRemaining.toFixed(2)})`);
             if (paymentInput === null) return;
-
             const paymentAmount = parseFloat(paymentInput);
-            if (isNaN(paymentAmount) || paymentAmount <= 0) {
-                alert("Por favor ingresa un monto válido.");
-                return;
-            }
-
-            if (paymentAmount > currentRemaining) {
-                alert("El abono no puede ser mayor al saldo pendiente.");
-                return;
-            }
+            if (isNaN(paymentAmount) || paymentAmount <= 0) return;
 
             const newRemaining = currentRemaining - paymentAmount;
-
-            if (newRemaining === 0) {
-                if (confirm("¡Este abono cubre el 100% de la deuda! ¿Deseas marcarla como saldada y eliminarla?")) {
+            if (newRemaining <= 0) {
+                if (confirm("¿Saldar y eliminar esta deuda por completo?")) {
                     await _supabase.from('personal_debts').delete().eq('id', id);
-                } else {
-                    return;
                 }
             } else {
                 await _supabase.from('personal_debts').update({ remaining_amount: newRemaining }).eq('id', id);
             }
-
             fetchData();
-            alert(`¡Abono registrado! Nuevo saldo pendiente: $${newRemaining.toFixed(2)}`);
         }
 
         async function deletePersonalDebt(id) {
-            if(confirm("¿Eliminar esta deuda por completo?")) {
+            if(confirm("¿Eliminar deuda?")) {
                 const { error } = await _supabase.from('personal_debts').delete().eq('id', id);
                 if(!error) fetchData();
             }
@@ -452,24 +430,17 @@
         async function applySalary() {
             const amount = parseFloat(document.getElementById('salaryAmount').value);
             const account = document.getElementById('salaryAccount').value;
+            if(!amount || amount <= 0) return;
 
-            if(!amount || amount <= 0) {
-                alert("Ingresa un monto de sueldo válido.");
-                return;
-            }
-
-            const { error } = await _supabase.from('transactions').insert([{ type: 'Ingreso', account, category: 'Salario', amount, note: 'Sueldo mensual fijo' }]);
-            if(error) {
-                alert("Error al aplicar el sueldo.");
-            } else {
-                alert("¡Sueldo aplicado con éxito!");
+            const { error } = await _supabase.from('transactions').insert([{ type: 'Ingreso', account, category: 'Salario', amount, note: 'Sueldo mensual' }]);
+            if(!error) {
                 switchTab('dashboard');
                 fetchData();
             }
         }
 
         async function deleteTransaction(id) {
-            if (confirm("¿Eliminar este movimiento?")) {
+            if (confirm("¿Eliminar movimiento?")) {
                 const { error } = await _supabase.from('transactions').delete().eq('id', id);
                 if (!error) fetchData();
             }
@@ -477,17 +448,11 @@
 
         function updateUI() {
             const list = document.getElementById('transactionList');
-            const balanceEl = document.getElementById('totalBalance');
-            const cashEl = document.getElementById('cashBalance');
-            const bankEl = document.getElementById('bankBalance');
-            const ccDebtEl = document.getElementById('ccDebtBalance');
-            const txCountEl = document.getElementById('txCount');
-            
             list.innerHTML = '';
             let total = 0, cashTotal = 0, bankTotal = 0, ccDebtTotal = 0;
 
             if (transactions.length === 0) {
-                list.innerHTML = '<div class="empty-state">No hay movimientos registrados</div>';
+                list.innerHTML = '<div class="empty-state">No hay movimientos</div>';
             } else {
                 transactions.forEach((t) => {
                     const amt = Number(t.amount);
@@ -521,38 +486,28 @@
                 });
             }
 
-            balanceEl.textContent = `$${total.toFixed(2)}`;
-            cashTotal = Math.max(0, cashTotal);
-            bankTotal = Math.max(0, bankTotal);
-            cashEl.textContent = `$${cashTotal.toFixed(2)}`;
-            bankEl.textContent = `$${bankTotal.toFixed(2)}`;
-            ccDebtEl.textContent = `$${ccDebtTotal.toFixed(2)}`;
-            txCountEl.textContent = `${transactions.length} regs`;
+            document.getElementById('totalBalance').textContent = `$${total.toFixed(2)}`;
+            document.getElementById('cashBalance').textContent = `$${Math.max(0, cashTotal).toFixed(2)}`;
+            document.getElementById('bankBalance').textContent = `$${Math.max(0, bankTotal).toFixed(2)}`;
+            document.getElementById('ccDebtBalance').textContent = `$${ccDebtTotal.toFixed(2)}`;
+            document.getElementById('txCount').textContent = `${transactions.length} regs`;
         }
 
         function renderCards() {
             const container = document.getElementById('creditCardsList');
             container.innerHTML = '';
-            if(creditCards.length === 0) {
-                container.innerHTML = '<div class="empty-state">No hay tarjetas configuradas</div>';
-                return;
-            }
+            if(creditCards.length === 0) { container.innerHTML = '<div class="empty-state">Sin tarjetas</div>'; return; }
 
             creditCards.forEach(card => {
                 let currentSpent = 0;
                 transactions.forEach(t => {
-                    if(t.account === 'Tarjeta de Crédito' && t.credit_card_name === card.name) {
-                        currentSpent += Number(t.amount);
-                    }
+                    if(t.account === 'Tarjeta de Crédito' && t.credit_card_name === card.name) currentSpent += Number(t.amount);
                 });
 
                 const div = document.createElement('div');
                 div.className = 'credit-card-box';
                 div.innerHTML = `
-                    <div class="cc-header">
-                        <span>💳 ${card.name}</span>
-                        <button class="delete-btn" onclick="deleteCreditCard(${card.id})" title="Eliminar tarjeta">&times;</button>
-                    </div>
+                    <div class="cc-header"><span>💳 ${card.name}</span><button class="delete-btn" onclick="deleteCreditCard(${card.id})">&times;</button></div>
                     <div class="cc-details">
                         <div>Consumido: <strong style="color:var(--danger);">$${currentSpent.toFixed(2)}</strong></div>
                         <div>Límite: <strong>$${card.limit}</strong></div>
@@ -566,90 +521,59 @@
 
         function renderDebts() {
             const container = document.getElementById('personalDebtsList');
-            const totalDebtEl = document.getElementById('totalDebtAmount');
             container.innerHTML = '';
-            
             let totalRemainingDebt = 0;
-            if(personalDebts.length === 0) {
-                container.innerHTML = '<div class="empty-state">No tienes deudas registradas</div>';
-                totalDebtEl.textContent = '$0.00';
-                return;
-            }
+            if(personalDebts.length === 0) { container.innerHTML = '<div class="empty-state">Sin deudas</div>'; document.getElementById('totalDebtAmount').textContent = '$0.00'; return; }
 
             personalDebts.forEach(debt => {
                 const remaining = Number(debt.remaining_amount);
-                const original = Number(debt.original_amount);
                 totalRemainingDebt += remaining;
-
                 const div = document.createElement('div');
                 div.className = 'debt-box';
                 div.innerHTML = `
                     <div class="debt-header">
                         <span>👤 ${debt.creditor}</span>
-                        <div style="display: flex; gap: 6px; align-items: center;">
-                            <button class="pay-btn" onclick="makeDebtPayment(${debt.id}, ${remaining})" title="Abonar">$ Abonar</button>
-                            <button class="delete-btn" onclick="deletePersonalDebt(${debt.id})" title="Eliminar">&times;</button>
-                        </div>
+                        <div style="display: flex; gap: 6px;"><button class="pay-btn" onclick="makeDebtPayment(${debt.id}, ${remaining})">Abonar</button><button class="delete-btn" onclick="deletePersonalDebt(${debt.id})">&times;</button></div>
                     </div>
                     <div class="debt-details">
                         <div>Pendiente: <strong style="color:var(--danger);">$${remaining.toFixed(2)}</strong></div>
-                        <div>Original: <strong>$${original.toFixed(2)}</strong></div>
-                        <div style="grid-column: span 2; margin-top: 2px;">Motivo: <strong>${debt.note || 'Sin nota'}</strong></div>
+                        <div>Original: <strong>$${Number(debt.original_amount).toFixed(2)}</strong></div>
+                        <div style="grid-column: span 2;">Motivo: <strong>${debt.note || 'Sin nota'}</strong></div>
                     </div>
                 `;
                 container.appendChild(div);
             });
-
-            totalDebtEl.textContent = `$${totalRemainingDebt.toFixed(2)}`;
+            document.getElementById('totalDebtAmount').textContent = `$${totalRemainingDebt.toFixed(2)}`;
         }
 
-        // 🔔 Alertas visuales modernas dentro de la interfaz (sin ventanas emergentes feas)
         function checkPaymentAlerts() {
             const container = document.getElementById('alertContainer');
-            container.innerHTML = ''; // Limpiar alertas previas
-            
+            container.innerHTML = '';
             if (creditCards.length === 0) return;
             const today = new Date().getDate(); 
 
             creditCards.forEach(card => {
                 const daysUntilPay = card.pay_day - today;
-                
                 let cardSpent = 0;
                 transactions.forEach(t => {
-                    if(t.account === 'Tarjeta de Crédito' && t.credit_card_name === card.name) {
-                        cardSpent += Number(t.amount);
-                    }
+                    if(t.account === 'Tarjeta de Crédito' && t.credit_card_name === card.name) cardSpent += Number(t.amount);
                 });
 
                 if (cardSpent > 0) {
                     if (daysUntilPay === 0) {
-                        // Alerta urgente del día de pago
                         const alertDiv = document.createElement('div');
                         alertDiv.className = 'alert-banner danger';
-                        alertDiv.innerHTML = `
-                            <div class="alert-content">
-                                ⚠️ <strong>¡DÍA DE PAGO HOY!</strong> Tu tarjeta <strong>"${card.name}"</strong> vence hoy (Día ${card.pay_day}). Tienes un saldo de <strong>$${cardSpent.toFixed(2)}</strong>.
-                            </div>
-                            <button class="alert-close" onclick="this.parentElement.remove()">&times;</button>
-                        `;
+                        alertDiv.innerHTML = `<div class="alert-content">⚠️ <strong>¡DÍA DE PAGO HOY!</strong> Tu tarjeta <strong>"${card.name}"</strong> vence hoy (Día ${card.pay_day}). Debes <strong>$${cardSpent.toFixed(2)}</strong>.</div><button class="alert-close" onclick="this.parentElement.remove()">&times;</button>`;
                         container.appendChild(alertDiv);
                     } else if (daysUntilPay > 0 && daysUntilPay <= 3) {
-                        // Alerta de próximos días
                         const alertDiv = document.createElement('div');
                         alertDiv.className = 'alert-banner';
-                        alertDiv.innerHTML = `
-                            <div class="alert-content">
-                                📢 <strong>Aviso de Tarjeta:</strong> Faltan <strong>${daysUntilPay} día(s)</strong> para pagar <strong>"${card.name}"</strong> (Día ${card.pay_day}). Debes <strong>$${cardSpent.toFixed(2)}</strong>.
-                            </div>
-                            <button class="alert-close" onclick="this.parentElement.remove()">&times;</button>
-                        `;
+                        alertDiv.innerHTML = `<div class="alert-content">📢 <strong>Aviso:</strong> Faltan <strong>${daysUntilPay} día(s)</strong> para pagar <strong>"${card.name}"</strong> (Día ${card.pay_day}). Debes <strong>$${cardSpent.toFixed(2)}</strong>.</div><button class="alert-close" onclick="this.parentElement.remove()">&times;</button>`;
                         container.appendChild(alertDiv);
                     }
                 }
             });
         }
-
-        fetchData();
     </script>
 </body>
 </html>
