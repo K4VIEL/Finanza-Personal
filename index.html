@@ -23,9 +23,9 @@
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         h1 { font-size: 18px; color: var(--text); }
         
-        /* Pestañas de navegación */
-        .tabs { display: flex; background: var(--card-bg); border-radius: 10px; padding: 4px; margin-bottom: 15px; border: 1px solid var(--border); }
-        .tab { flex: 1; text-align: center; padding: 8px; font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: 8px; transition: 0.2s; }
+        /* Pestañas de navegación adaptadas a 4 opciones */
+        .tabs { display: flex; background: var(--card-bg); border-radius: 10px; padding: 4px; margin-bottom: 15px; border: 1px solid var(--border); overflow-x: auto; }
+        .tab { flex: 1; text-align: center; padding: 8px 4px; font-size: 11px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: 8px; transition: 0.2s; white-space: nowrap; }
         .tab.active { background: var(--accent); color: white; }
 
         .card { background: var(--card-bg); padding: 16px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); margin-bottom: 15px; border: 1px solid var(--border); }
@@ -55,11 +55,11 @@
         .delete-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 4px; }
         .delete-btn:hover { color: var(--danger); }
         
-        /* Tarjetas de Crédito Estilo Pro */
-        .credit-card-box { background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; position: relative; }
-        .cc-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 6px; color: var(--warning); }
-        .cc-details { display: grid; grid-template-columns: 1fr 1fr; font-size: 11px; color: var(--text-muted); gap: 4px; }
-        .cc-details strong { color: var(--text); }
+        /* Estilos Tarjetas y Deudas */
+        .credit-card-box, .debt-box { background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; position: relative; }
+        .cc-header, .debt-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 6px; color: var(--warning); }
+        .cc-details, .debt-details { display: grid; grid-template-columns: 1fr 1fr; font-size: 11px; color: var(--text-muted); gap: 4px; }
+        .cc-details strong, .debt-details strong { color: var(--text); }
         
         .view-section { display: none; }
         .view-section.active { display: block; }
@@ -78,6 +78,7 @@
         <div class="tabs">
             <div class="tab active" onclick="switchTab('dashboard')">Panel</div>
             <div class="tab" onclick="switchTab('cards')">Tarjetas</div>
+            <div class="tab" onclick="switchTab('debts')">Deudas</div>
             <div class="tab" onclick="switchTab('salary')">Sueldo</div>
         </div>
 
@@ -147,7 +148,7 @@
             </div>
         </div>
 
-        <!-- VISTA 2: TARJETAS DE CRÉDITO (Fechas de corte y pago) -->
+        <!-- VISTA 2: TARJETAS DE CRÉDITO -->
         <div id="view-cards" class="view-section">
             <div class="card">
                 <div class="section-title"><span>💳 Registrar Tarjeta de Crédito</span></div>
@@ -160,11 +161,11 @@
                     <input type="number" id="ccLimit" placeholder="1000.00">
                 </div>
                 <div class="form-group">
-                    <label>Día de Corte (Ej. 15 de cada mes)</label>
+                    <label>Día de Corte (Ej. 15)</label>
                     <input type="number" id="ccCutDay" placeholder="15" min="1" max="31">
                 </div>
                 <div class="form-group">
-                    <label>Día Máximo de Pago (Ej. 25 de cada mes)</label>
+                    <label>Día Máximo de Pago (Ej. 25)</label>
                     <input type="number" id="ccPayDay" placeholder="25" min="1" max="31">
                 </div>
                 <button class="btn-primary" onclick="saveCreditCard()">Guardar Tarjeta</button>
@@ -178,7 +179,37 @@
             </div>
         </div>
 
-        <!-- VISTA 3: CONFIGURACIÓN DE SUELDO MENSUAL -->
+        <!-- VISTA 3: DEUDAS PERSONALES (¿A quién le debo y cuánto?) -->
+        <div id="view-debts" class="view-section">
+            <div class="card">
+                <div class="section-title"><span>📝 Registrar Deuda Personal</span></div>
+                <div class="form-group">
+                    <label>¿A quién le debes? (Acreedor)</label>
+                    <input type="text" id="debtCreditor" placeholder="Ej. Juan Pérez / Amigo / Familiar">
+                </div>
+                <div class="form-group">
+                    <label>Monto Adeudado ($)</label>
+                    <input type="number" id="debtAmount" placeholder="150.00" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Nota / Motivo</label>
+                    <input type="text" id="debtNote" placeholder="Ej. Prestamo para repuesto de moto">
+                </div>
+                <button class="btn-primary btn-expense" onclick="savePersonalDebt()">Guardar Deuda 📉</button>
+            </div>
+
+            <div class="card">
+                <div class="section-title">
+                    <span>Control de Deudas Personales</span>
+                    <strong id="totalDebtAmount" style="color: var(--danger); font-size: 13px;">$0.00</strong>
+                </div>
+                <div id="personalDebtsList">
+                    <div class="empty-state">No hay deudas registradas</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VISTA 4: SUELDO MENSUAL -->
         <div id="view-salary" class="view-section">
             <div class="card">
                 <div class="section-title"><span>💰 Configurar Sueldo Mensual Fijo</span></div>
@@ -200,7 +231,6 @@
     </div>
 
     <script>
-        // 🔑 TUS CREDENCIALES CONFIGURADAS
         const SUPABASE_URL = 'https://flxsufbwttizbqtymqrb.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_5R_cgDMLtMh9JQPpUow5YQ_epltv-V6';
         
@@ -209,46 +239,37 @@
 
         let transactions = [];
         let creditCards = [];
+        let personalDebts = [];
 
         function switchTab(tabName) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
             
-            if(tabName === 'dashboard') {
-                document.querySelectorAll('.tab')[0].classList.add('active');
-                document.getElementById('view-dashboard').classList.add('active');
-            } else if(tabName === 'cards') {
-                document.querySelectorAll('.tab')[1].classList.add('active');
-                document.getElementById('view-cards').classList.add('active');
-            } else if(tabName === 'salary') {
-                document.querySelectorAll('.tab')[2].classList.add('active');
-                document.getElementById('view-salary').classList.add('active');
-            }
+            const tabsMap = { dashboard: 0, cards: 1, debts: 2, salary: 3 };
+            document.querySelectorAll('.tab')[tabsMap[tabName]].classList.add('active');
+            document.getElementById(`view-${tabName}`).classList.add('active');
         }
 
         async function fetchData() {
             document.getElementById('syncStatus').textContent = 'Sincronizando...';
             
-            // Cargar Transacciones
-            const { data: txData, error: txError } = await _supabase
-                .from('transactions')
-                .select('*')
-                .order('created_at', { ascending: false });
+            const [txRes, ccRes, debtRes] = await Promise.all([
+                _supabase.from('transactions').select('*').order('created_at', { ascending: false }),
+                _supabase.from('credit_cards').select('*'),
+                _supabase.from('personal_debts').select('*').order('created_at', { ascending: false })
+            ]);
 
-            // Cargar Tarjetas
-            const { data: ccData, error: ccError } = await _supabase
-                .from('credit_cards')
-                .select('*');
-
-            if (txError) {
-                console.error('Error:', txError);
+            if (txRes.error || ccRes.error || debtRes.error) {
+                console.error('Error al sincronizar');
                 document.getElementById('syncStatus').textContent = 'Error de conexión';
             } else {
-                transactions = txData || [];
-                creditCards = ccData || [];
+                transactions = txRes.data || [];
+                creditCards = ccRes.data || [];
+                personalDebts = debtRes.data || [];
                 document.getElementById('syncStatus').textContent = '🟢 En línea';
                 updateUI();
                 renderCards();
+                renderDebts();
             }
         }
 
@@ -263,12 +284,9 @@
                 return;
             }
 
-            const newTx = { type, account, category, amount, note };
-            const { error } = await _supabase.from('transactions').insert([newTx]);
-
+            const { error } = await _supabase.from('transactions').insert([{ type, account, category, amount, note }]);
             if (error) {
                 alert('Error al guardar transacción.');
-                console.error(error);
             } else {
                 document.getElementById('amount').value = '';
                 document.getElementById('note').value = '';
@@ -287,10 +305,9 @@
                 return;
             }
 
-            const { error } = await _supabase.from('credit_cards').insert([{ name, limit, cut_day, pay_day }]);
+            const { error } = await _supabase.from('credit_cards').insert([{ name, "limit": limit, cut_day, pay_day }]);
             if(error) {
-                alert("Error al guardar tarjeta. Asegúrate de haber creado la tabla 'credit_cards' en Supabase.");
-                console.error(error);
+                alert("Error al guardar tarjeta.");
             } else {
                 document.getElementById('ccName').value = '';
                 document.getElementById('ccLimit').value = '';
@@ -298,6 +315,35 @@
                 document.getElementById('ccPayDay').value = '';
                 fetchData();
                 alert("¡Tarjeta guardada con éxito!");
+            }
+        }
+
+        async function savePersonalDebt() {
+            const creditor = document.getElementById('debtCreditor').value;
+            const amount = parseFloat(document.getElementById('debtAmount').value);
+            const note = document.getElementById('debtNote').value;
+
+            if(!creditor || !amount) {
+                alert("Indica a quién le debes y el monto.");
+                return;
+            }
+
+            const { error } = await _supabase.from('personal_debts').insert([{ creditor, amount, note }]);
+            if(error) {
+                alert("Error al guardar la deuda.");
+            } else {
+                document.getElementById('debtCreditor').value = '';
+                document.getElementById('debtAmount').value = '';
+                document.getElementById('debtNote').value = '';
+                fetchData();
+                alert("¡Deuda registrada con éxito!");
+            }
+        }
+
+        async function deletePersonalDebt(id) {
+            if(confirm("¿Marcar esta deuda como pagada/eliminada?")) {
+                const { error } = await _supabase.from('personal_debts').delete().eq('id', id);
+                if(!error) fetchData();
             }
         }
 
@@ -310,13 +356,11 @@
                 return;
             }
 
-            const newTx = { type: 'Ingreso', account, category: 'Salario', amount, note: 'Sueldo mensual fijo' };
-            const { error } = await _supabase.from('transactions').insert([newTx]);
-
+            const { error } = await _supabase.from('transactions').insert([{ type: 'Ingreso', account, category: 'Salario', amount, note: 'Sueldo mensual fijo' }]);
             if(error) {
                 alert("Error al aplicar el sueldo.");
             } else {
-                alert("¡Sueldo aplicado con éxito a tu cuenta!");
+                alert("¡Sueldo aplicado con éxito!");
                 switchTab('dashboard');
                 fetchData();
             }
@@ -384,12 +428,10 @@
         function renderCards() {
             const container = document.getElementById('creditCardsList');
             container.innerHTML = '';
-
             if(creditCards.length === 0) {
                 container.innerHTML = '<div class="empty-state">No hay tarjetas configuradas</div>';
                 return;
             }
-
             creditCards.forEach(card => {
                 const div = document.createElement('div');
                 div.className = 'credit-card-box';
@@ -403,6 +445,38 @@
                 `;
                 container.appendChild(div);
             });
+        }
+
+        function renderDebts() {
+            const container = document.getElementById('personalDebtsList');
+            const totalDebtEl = document.getElementById('totalDebtAmount');
+            container.innerHTML = '';
+            
+            let totalDebt = 0;
+            if(personalDebts.length === 0) {
+                container.innerHTML = '<div class="empty-state">No tienes deudas registradas</div>';
+                totalDebtEl.textContent = '$0.00';
+                return;
+            }
+
+            personalDebts.forEach(debt => {
+                totalDebt += Number(debt.amount);
+                const div = document.createElement('div');
+                div.className = 'debt-box';
+                div.innerHTML = `
+                    <div class="debt-header">
+                        <span>👤 Deuda con: ${debt.creditor}</span>
+                        <button class="delete-btn" onclick="deletePersonalDebt(${debt.id})" title="Marcar como pagada">&times;</button>
+                    </div>
+                    <div class="debt-details">
+                        <div>Monto: <strong style="color:var(--danger);">$${Number(debt.amount).toFixed(2)}</strong></div>
+                        <div>Motivo: <strong>${debt.note || 'Sin nota'}</strong></div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            totalDebtEl.textContent = `$${totalDebt.toFixed(2)}`;
         }
 
         fetchData();
