@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi 1Money Personal</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #27ae60;
+            --danger: #c0392b;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #333333;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        h1, h2 {
+            text-align: center;
+            color: var(--primary);
+        }
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .balance-box {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--accent);
+            margin-bottom: 10px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            color: white;
+        }
+        .btn-income { background-color: var(--accent); }
+        .btn-expense { background-color: var(--danger); }
+        button:hover { opacity: 0.9; }
+        
+        .transaction-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        .transaction-item.income { border-left: 4px solid var(--accent); }
+        .transaction-item.expense { border-left: 4px solid var(--danger); }
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0 5px;
+        }
+        .delete-btn:hover { color: var(--danger); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Mi 1Money</h1>
+
+        <!-- Resumen de Balance -->
+        <div class="card">
+            <div style="font-size: 14px; color: #777; text-align: center;">Balance Total</div>
+            <div class="balance-box" id="totalBalance">$0.00</div>
+        </div>
+
+        <!-- Formulario de Registro -->
+        <div class="card">
+            <h2>Nuevo Movimiento</h2>
+            <div class="form-group">
+                <label>Cuenta</label>
+                <select id="account">
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Banco">Banco / Tarjeta</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Categoría</label>
+                <select id="category">
+                    <option value="Comida">🍔 Comida</option>
+                    <option value="Transporte">🚗 Transporte</option>
+                    <option value="Salario">💰 Salario</option>
+                    <option value="Entretenimiento">🎉 Entretenimiento</option>
+                    <option value="Otros">📦 Otros</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Monto ($)</label>
+                <input type="number" id="amount" placeholder="0.00" step="0.01">
+            </div>
+
+            <div class="form-group">
+                <label>Nota (Opcional)</label>
+                <input type="text" id="note" placeholder="Ej. Almuerzo con amigos">
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-expense" onclick="addTransaction('Gasto')">Gasto</button>
+                <button class="btn-income" onclick="addTransaction('Ingreso')">Ingreso</button>
+            </div>
+        </div>
+
+        <!-- Historial -->
+        <div class="card">
+            <h2>Historial</h2>
+            <ul class="transaction-list" id="transactionList">
+                <!-- Se llena dinámicamente -->
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+
+        function updateUI() {
+            const list = document.getElementById('transactionList');
+            const balanceEl = document.getElementById('totalBalance');
+            list.innerHTML = '';
+            
+            let total = 0;
+
+            transactions.forEach((t, index) => {
+                if (t.type === 'Ingreso') {
+                    total += Number(t.amount);
+                } else {
+                    total -= Number(t.amount);
+                }
+
+                const li = document.createElement('li');
+                li.className = `transaction-item ${t.type === 'Ingreso' ? 'income' : 'expense'}`;
+                li.innerHTML = `
+                    <div>
+                        <strong>${t.category}</strong> (${t.account})<br>
+                        <small style="color:#666;">${t.note || 'Sin nota'}</small>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="font-weight: bold; color: ${t.type === 'Ingreso' ? 'var(--accent)' : 'var(--danger)'}">
+                            ${t.type === 'Ingreso' ? '+' : '-'}$${Number(t.amount).toFixed(2)}
+                        </span>
+                        <button class="delete-btn" onclick="deleteTransaction(${index})">&times;</button>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+
+            balanceEl.textContent = `$${total.toFixed(2)}`;
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+        }
+
+        function addTransaction(type) {
+            const account = document.getElementById('account').value;
+            const category = document.getElementById('category').value;
+            const amount = document.getElementById('amount').value;
+            const note = document.getElementById('note').value;
+
+            if (!amount || amount <= 0) {
+                alert("Por favor ingresa un monto válido.");
+                return;
+            }
+
+            const transaction = { type, account, category, amount, note };
+            transactions.unshift(transaction); // Agrega al inicio
+
+            // Limpiar campos
+            document.getElementById('amount').value = '';
+            document.getElementById('note').value = '';
+
+            updateUI();
+        }
+
+        function deleteTransaction(index) {
+            transactions.splice(index, 1);
+            updateUI();
+        }
+
+        // Inicializar al cargar
+        updateUI();
+    </script>
+</body>
+</html>
+
