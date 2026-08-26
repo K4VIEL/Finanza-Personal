@@ -29,6 +29,17 @@
         .tab.active { background: var(--accent); color: white; }
 
         .card { background: var(--card-bg); padding: 16px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); margin-bottom: 15px; border: 1px solid var(--border); }
+        
+        /* Contenedor de Alertas Modernas estilo Banner */
+        #alertContainer { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
+        .alert-banner { background: rgba(245, 158, 11, 0.15); border: 1px solid var(--warning); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; animation: fadeIn 0.3s ease; }
+        .alert-banner.danger { background: rgba(239, 68, 68, 0.15); border-color: var(--danger); }
+        .alert-content { font-size: 12px; color: var(--text); line-height: 1.4; }
+        .alert-content strong { color: var(--warning); }
+        .alert-banner.danger .alert-content strong { color: var(--danger); }
+        .alert-close { background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; padding: 0 4px; }
+        .alert-close:hover { color: var(--text); }
+
         .balance-title { font-size: 12px; color: var(--text-muted); text-align: center; text-transform: uppercase; letter-spacing: 1px; }
         .balance-amount { text-align: center; font-size: 28px; font-weight: 800; color: var(--accent); margin: 5px 0 12px 0; }
         
@@ -67,6 +78,8 @@
         .view-section { display: none; }
         .view-section.active { display: block; }
         .empty-state { text-align: center; color: var(--text-muted); padding: 15px; font-size: 13px; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -84,6 +97,9 @@
             <div class="tab" onclick="switchTab('debts')">Deudas</div>
             <div class="tab" onclick="switchTab('salary')">Sueldo</div>
         </div>
+
+        <!-- CONTENEDOR DE ALERTAS INTEGRADAS (MODERNAS) -->
+        <div id="alertContainer"></div>
 
         <!-- VISTA 1: PANEL GENERAL Y TRANSACCIONES -->
         <div id="view-dashboard" class="view-section active">
@@ -116,12 +132,9 @@
                     </select>
                 </div>
 
-                <!-- Selector dinámico de tarjeta específica -->
                 <div class="form-group" id="cardSelectorGroup" style="display: none;">
                     <label>Selecciona la Tarjeta Específica</label>
-                    <select id="specificCard">
-                        <!-- Se llena automáticamente con JS -->
-                    </select>
+                    <select id="specificCard"></select>
                 </div>
 
                 <div class="form-group">
@@ -260,11 +273,6 @@
             const tabsMap = { dashboard: 0, cards: 1, debts: 2, salary: 3 };
             document.querySelectorAll('.tab')[tabsMap[tabName]].classList.add('active');
             document.getElementById(`view-${tabName}`).classList.add('active');
-            
-            // Si entra al panel o tarjetas, revisa alertas
-            if(tabName === 'dashboard' || tabName === 'cards') {
-                checkPaymentAlerts();
-            }
         }
 
         function toggleCardSelector() {
@@ -531,7 +539,6 @@
             }
 
             creditCards.forEach(card => {
-                // Calcular consumo actual sumando los gastos asociados a esta tarjeta exacta
                 let currentSpent = 0;
                 transactions.forEach(t => {
                     if(t.account === 'Tarjeta de Crédito' && t.credit_card_name === card.name) {
@@ -596,15 +603,17 @@
             totalDebtEl.textContent = `$${totalRemainingDebt.toFixed(2)}`;
         }
 
-        // 🔔 Alertas automáticas inteligentes para Tarjetas de Crédito
+        // 🔔 Alertas visuales modernas dentro de la interfaz (sin ventanas emergentes feas)
         function checkPaymentAlerts() {
+            const container = document.getElementById('alertContainer');
+            container.innerHTML = ''; // Limpiar alertas previas
+            
             if (creditCards.length === 0) return;
             const today = new Date().getDate(); 
 
             creditCards.forEach(card => {
                 const daysUntilPay = card.pay_day - today;
                 
-                // Calculamos cuánto debe esta tarjeta específica
                 let cardSpent = 0;
                 transactions.forEach(t => {
                     if(t.account === 'Tarjeta de Crédito' && t.credit_card_name === card.name) {
@@ -614,15 +623,27 @@
 
                 if (cardSpent > 0) {
                     if (daysUntilPay === 0) {
-                        if(!sessionStorage.getItem(`alert_${card.id}_${today}`)) {
-                            alert(`⚠️ ¡ALERTA DE PAGO! Hoy es el DÍA MÁXIMO DE PAGO para tu tarjeta "${card.name}" (Día ${card.pay_day}). Tienes un saldo acumulado de $${cardSpent.toFixed(2)}. ¡Evita recargos!`);
-                            sessionStorage.setItem(`alert_${card.id}_${today}`, 'true');
-                        }
+                        // Alerta urgente del día de pago
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert-banner danger';
+                        alertDiv.innerHTML = `
+                            <div class="alert-content">
+                                ⚠️ <strong>¡DÍA DE PAGO HOY!</strong> Tu tarjeta <strong>"${card.name}"</strong> vence hoy (Día ${card.pay_day}). Tienes un saldo de <strong>$${cardSpent.toFixed(2)}</strong>.
+                            </div>
+                            <button class="alert-close" onclick="this.parentElement.remove()">&times;</button>
+                        `;
+                        container.appendChild(alertDiv);
                     } else if (daysUntilPay > 0 && daysUntilPay <= 3) {
-                        if(!sessionStorage.getItem(`alert_${card.id}_soon_${today}`)) {
-                            alert(`📢 Recordatorio de Tarjeta: Faltan ${daysUntilPay} día(s) para el pago de "${card.name}" (Día ${card.pay_day}). Tu saldo actual es de $${cardSpent.toFixed(2)}.`);
-                            sessionStorage.setItem(`alert_${card.id}_soon_${today}`, 'true');
-                        }
+                        // Alerta de próximos días
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert-banner';
+                        alertDiv.innerHTML = `
+                            <div class="alert-content">
+                                📢 <strong>Aviso de Tarjeta:</strong> Faltan <strong>${daysUntilPay} día(s)</strong> para pagar <strong>"${card.name}"</strong> (Día ${card.pay_day}). Debes <strong>$${cardSpent.toFixed(2)}</strong>.
+                            </div>
+                            <button class="alert-close" onclick="this.parentElement.remove()">&times;</button>
+                        `;
+                        container.appendChild(alertDiv);
                     }
                 }
             });
