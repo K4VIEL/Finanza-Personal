@@ -270,7 +270,7 @@
                 updateUI();
                 renderCards();
                 renderDebts();
-                checkPaymentAlerts(); // 🔔 Evalúa alertas al cargar los datos
+                checkPaymentAlerts(); 
             }
         }
 
@@ -480,26 +480,20 @@
             totalDebtEl.textContent = `$${totalDebt.toFixed(2)}`;
         }
 
-        // 🔔 Función automática de Alerta de Pagos
         function checkPaymentAlerts() {
             if (creditCards.length === 0) return;
             
-            const today = new Date().getDate(); // Obtiene el día actual del mes (1 al 31)
-            let alertsTriggered = false;
+            const today = new Date().getDate(); 
 
             creditCards.forEach(card => {
-                // Compara si hoy es el día de pago o si faltan 2 días o menos
                 const daysUntilPay = card.pay_day - today;
                 
                 if (daysUntilPay === 0) {
-                    // Alerta si hoy es el día exacto de pago
-                    console.(`¡Alerta de pago hoy para ${card.name}!`);
                     if(!sessionStorage.getItem(`alert_${card.id}_${today}`)) {
                         alert(`⚠️ ¡ATENCIÓN! Hoy es el DÍA MÁXIMO DE PAGO para tu tarjeta: "${card.name}" (Día ${card.pay_day}). ¡No olvides pagar para evitar recargos!`);
                         sessionStorage.setItem(`alert_${card.id}_${today}`, 'true');
                     }
                 } else if (daysUntilPay > 0 && daysUntilPay <= 3) {
-                    // Alerta si faltan de 1 a 3 días para el pago
                     if(!sessionStorage.getItem(`alert_${card.id}_soon_${today}`)) {
                         alert(`📢 Recordatorio: Faltan ${daysUntilPay} día(s) para el pago de tu tarjeta "${card.name}" (Día ${card.pay_day}).`);
                         sessionStorage.setItem(`alert_${card.id}_soon_${today}`, 'true');
