@@ -52,8 +52,11 @@
         .section-title { font-size: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         .transaction-list { list-style: none; max-height: 220px; overflow-y: auto; }
         .transaction-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+        
         .delete-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 4px; }
         .delete-btn:hover { color: var(--danger); }
+        .pay-btn { background: rgba(16, 185, 129, 0.15); border: 1px solid var(--accent); color: var(--accent); border-radius: 6px; padding: 4px 8px; font-size: 11px; font-weight: bold; cursor: pointer; }
+        .pay-btn:hover { background: var(--accent); color: white; }
         
         /* Estilos Tarjetas y Deudas */
         .credit-card-box, .debt-box { background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; position: relative; }
@@ -179,7 +182,7 @@
             </div>
         </div>
 
-        <!-- VISTA 3: DEUDAS PERSONALES -->
+        <!-- VISTA 3: DEUDAS PERSONALES CON ABONOS -->
         <div id="view-debts" class="view-section">
             <div class="card">
                 <div class="section-title"><span>📝 Registrar Deuda Personal</span></div>
@@ -188,19 +191,19 @@
                     <input type="text" id="debtCreditor" placeholder="Ej. Juan Pérez / Amigo / Familiar">
                 </div>
                 <div class="form-group">
-                    <label>Monto Adeudado ($)</label>
+                    <label>Monto Total Adeudado ($)</label>
                     <input type="number" id="debtAmount" placeholder="150.00" step="0.01">
                 </div>
                 <div class="form-group">
                     <label>Nota / Motivo</label>
-                    <input type="text" id="debtNote" placeholder="Ej. Prestamo para repuesto de moto">
+                    <input type="text" id="debtNote" placeholder="Ej. Préstamo para repuesto de moto">
                 </div>
                 <button class="btn-primary btn-expense" onclick="savePersonalDebt()">Guardar Deuda 📉</button>
             </div>
 
             <div class="card">
                 <div class="section-title">
-                    <span>Control de Deudas Personales</span>
+                    <span>Control de Deudas (Saldo Restante)</span>
                     <strong id="totalDebtAmount" style="color: var(--danger); font-size: 13px;">$0.00</strong>
                 </div>
                 <div id="personalDebtsList">
@@ -329,7 +332,14 @@
                 return;
             }
 
-            const { error } = await _supabase.from('personal_debts').insert([{ creditor, amount, note }]);
+            const newDebt = { 
+                creditor, 
+                original_amount: amount, 
+                remaining_amount: amount, 
+                note 
+            };
+
+            const { error } = await _supabase.from('personal_debts').insert([newDebt]);
             if(error) {
                 alert("Error al guardar la deuda.");
             } else {
@@ -341,8 +351,48 @@
             }
         }
 
+        // 💵 Función para Abonar a una Deuda
+        async function makeDebtPayment(id, currentRemaining) {
+            const paymentInput = prompt(`¿Cuánto deseas abonar a esta deuda?\nSaldo pendiente actual: $${currentRemaining.toFixed(2)}`);
+            if (paymentInput === null) return; // Si canceló
+
+            const paymentAmount = parseFloat(paymentInput);
+            if (isNaN(paymentAmount) || paymentAmount <= 0) {
+                alert("Por favor ingresa un monto válido.");
+                return;
+            }
+
+            if (paymentAmount > currentRemaining) {
+                alert("El monto del abono no puede ser mayor al saldo pendiente de la deuda.");
+                return;
+            }
+
+            const newRemaining = currentRemaining - paymentAmount;
+
+            if (newRemaining === 0) {
+                if (confirm("¡Este abono cubre el 100% de la deuda! ¿Deseas marcarla como saldada y eliminarla?")) {
+                    await _supabase.from('personal_debts').delete().eq('id', id);
+                } else {
+                    return;
+                }
+            } else {
+                // Actualiza el saldo restante en Supabase
+                const { error } = await _supabase.from('personal_debts')
+                    .update({ remaining_amount: newRemaining })
+                    .eq('id', id);
+
+                if (error) {
+                    alert("Error al registrar el abono.");
+                    return;
+                }
+            }
+
+            fetchData();
+            alert(`¡Abono de $${paymentAmount.toFixed(2)} registrado con éxito! Nuevo saldo pendiente: $${newRemaining.toFixed(2)}`);
+        }
+
         async function deletePersonalDebt(id) {
-            if(confirm("¿Marcar esta deuda como pagada/eliminada?")) {
+            if(confirm("¿Estás seguro de eliminar esta deuda por completo?")) {
                 const { error } = await _supabase.from('personal_debts').delete().eq('id', id);
                 if(!error) fetchData();
             }
@@ -453,7 +503,7 @@
             const totalDebtEl = document.getElementById('totalDebtAmount');
             container.innerHTML = '';
             
-            let totalDebt = 0;
+            let totalRemainingDebt = 0;
             if(personalDebts.length === 0) {
                 container.innerHTML = '<div class="empty-state">No tienes deudas registradas</div>';
                 totalDebtEl.textContent = '$0.00';
@@ -461,36 +511,40 @@
             }
 
             personalDebts.forEach(debt => {
-                totalDebt += Number(debt.amount);
+                const remaining = Number(debt.remaining_amount);
+                const original = Number(debt.original_amount);
+                totalRemainingDebt += remaining;
+
                 const div = document.createElement('div');
                 div.className = 'debt-box';
                 div.innerHTML = `
                     <div class="debt-header">
-                        <span>👤 Deuda con: ${debt.creditor}</span>
-                        <button class="delete-btn" onclick="deletePersonalDebt(${debt.id})" title="Marcar como pagada">&times;</button>
+                        <span>👤 ${debt.creditor}</span>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <button class="pay-btn" onclick="makeDebtPayment(${debt.id}, ${remaining})" title="Abonar a la deuda">$ Abonar</button>
+                            <button class="delete-btn" onclick="deletePersonalDebt(${debt.id})" title="Eliminar deuda">&times;</button>
+                        </div>
                     </div>
                     <div class="debt-details">
-                        <div>Monto: <strong style="color:var(--danger);">$${Number(debt.amount).toFixed(2)}</strong></div>
-                        <div>Motivo: <strong>${debt.note || 'Sin nota'}</strong></div>
+                        <div>Pendiente: <strong style="color:var(--danger);">$${remaining.toFixed(2)}</strong></div>
+                        <div>Original: <strong>$${original.toFixed(2)}</strong></div>
+                        <div style="grid-column: span 2; margin-top: 2px;">Motivo: <strong>${debt.note || 'Sin nota'}</strong></div>
                     </div>
                 `;
                 container.appendChild(div);
             });
 
-            totalDebtEl.textContent = `$${totalDebt.toFixed(2)}`;
+            totalDebtEl.textContent = `$${totalRemainingDebt.toFixed(2)}`;
         }
 
         function checkPaymentAlerts() {
             if (creditCards.length === 0) return;
-            
             const today = new Date().getDate(); 
-
             creditCards.forEach(card => {
                 const daysUntilPay = card.pay_day - today;
-                
                 if (daysUntilPay === 0) {
                     if(!sessionStorage.getItem(`alert_${card.id}_${today}`)) {
-                        alert(`⚠️ ¡ATENCIÓN! Hoy es el DÍA MÁXIMO DE PAGO para tu tarjeta: "${card.name}" (Día ${card.pay_day}). ¡No olvides pagar para evitar recargos!`);
+                        alert(`⚠️ ¡ATENCIÓN! Hoy es el DÍA MÁXIMO DE PAGO para tu tarjeta: "${card.name}" (Día ${card.pay_day}).`);
                         sessionStorage.setItem(`alert_${card.id}_${today}`, 'true');
                     }
                 } else if (daysUntilPay > 0 && daysUntilPay <= 3) {
