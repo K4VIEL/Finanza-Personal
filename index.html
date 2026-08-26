@@ -22,15 +22,15 @@
         .container { width: 100%; max-width: 480px; display: none; }
         .container.active { display: block; }
         
-        /* Pantalla de Login */
-        #loginScreen { width: 100%; max-width: 380px; background: var(--card-bg); padding: 25px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.4); text-align: center; }
-        #loginScreen h2 { margin-bottom: 8px; font-size: 20px; color: var(--accent); }
-        #loginScreen p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+        /* Pantalla de Login / Registro */
+        #authScreen { width: 100%; max-width: 380px; background: var(--card-bg); padding: 25px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.4); text-align: center; }
+        #authScreen h2 { margin-bottom: 8px; font-size: 22px; color: var(--accent); }
+        #authScreen p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
 
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         h1 { font-size: 18px; color: var(--text); }
         
-        /* Pestañas de navegación */
+        /* Pestañas */
         .tabs { display: flex; background: var(--card-bg); border-radius: 10px; padding: 4px; margin-bottom: 15px; border: 1px solid var(--border); overflow-x: auto; }
         .tab { flex: 1; text-align: center; padding: 8px 4px; font-size: 11px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: 8px; transition: 0.2s; white-space: nowrap; }
         .tab.active { background: var(--accent); color: white; }
@@ -39,7 +39,7 @@
         
         /* Alertas Modernas */
         #alertContainer { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
-        .alert-banner { background: rgba(245, 158, 11, 0.15); border: 1px solid var(--warning); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; animation: fadeIn 0.3s ease; }
+        .alert-banner { background: rgba(245, 158, 11, 0.15); border: 1px solid var(--warning); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
         .alert-banner.danger { background: rgba(239, 68, 68, 0.15); border-color: var(--danger); }
         .alert-content { font-size: 12px; color: var(--text); line-height: 1.4; }
         .alert-content strong { color: var(--warning); }
@@ -81,35 +81,44 @@
         .view-section { display: none; }
         .view-section.active { display: block; }
         .empty-state { text-align: center; color: var(--text-muted); padding: 15px; font-size: 13px; }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        .auth-switch { margin-top: 15px; font-size: 12px; color: var(--text-muted); cursor: pointer; }
+        .auth-switch span { color: var(--info); text-decoration: underline; }
     </style>
 </head>
 <body>
 
-    <!-- PANTALLA DE ACCESO PROTEGIDO -->
-    <div id="loginScreen">
-        <h2>🔒 Finanzas Pro Cloud</h2>
-        <p>Ingresa tu clave de acceso para ver tus finanzas</p>
+    <!-- PANTALLA DE AUTENTICACIÓN (LOGIN / REGISTRO) -->
+    <div id="authScreen">
+        <h2 id="authTitle">Iniciar Sesión</h2>
+        <p id="authSubtitle">Gestiona tus finanzas personales de forma segura</p>
+        
         <div class="form-group">
-            <label>Contraseña Secreta</label>
-            <input type="password" id="accessPassword" placeholder="••••••••">
+            <label>Correo Electrónico</label>
+            <input type="email" id="authEmail" placeholder="tu@correo.com">
         </div>
-        <button class="btn-primary" onclick="verifyAccess()">Entrar al Panel</button>
-        <p id="loginError" style="color: var(--danger); font-size: 12px; margin-top: 10px; display: none;">Contraseña incorrecta</p>
+        <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" id="authPassword" placeholder="••••••••">
+        </div>
+        
+        <button class="btn-primary" id="authBtn" onclick="handleAuth()">Entrar</button>
+        <p id="authError" style="color: var(--danger); font-size: 12px; margin-top: 10px; display: none;"></p>
+        
+        <div class="auth-switch" onclick="toggleAuthMode()">
+            <span id="authSwitchText">¿No tienes cuenta? Regístrate aquí</span>
+        </div>
     </div>
 
     <!-- APLICACIÓN PRINCIPAL -->
     <div class="container" id="mainAppContainer">
         <header>
             <h1>💼 Finanzas Pro Cloud</h1>
-            <div style="display: flex; gap: 10px; align-items: center;">
+            <div style="display: flex; gap: 8px; align-items: center;">
                 <span id="syncStatus" style="font-size: 11px; color: var(--accent);">Conectando...</span>
                 <button onclick="logout()" style="background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger); padding: 4px 8px; font-size: 11px; border-radius: 6px;">Salir</button>
             </div>
         </header>
 
-        <!-- Pestañas de navegación -->
         <div class="tabs">
             <div class="tab active" onclick="switchTab('dashboard')">Panel</div>
             <div class="tab" onclick="switchTab('cards')">Tarjetas</div>
@@ -117,7 +126,6 @@
             <div class="tab" onclick="switchTab('salary')">Sueldo</div>
         </div>
 
-        <!-- CONTENEDOR DE ALERTAS -->
         <div id="alertContainer"></div>
 
         <!-- VISTA 1: PANEL -->
@@ -126,18 +134,9 @@
                 <div class="balance-title">Balance Neto Disponible</div>
                 <div class="balance-amount" id="totalBalance">$0.00</div>
                 <div class="accounts-grid">
-                    <div class="account-badge">
-                        <span>Efectivo</span>
-                        <strong id="cashBalance">$0.00</strong>
-                    </div>
-                    <div class="account-badge">
-                        <span>Banco</span>
-                        <strong id="bankBalance">$0.00</strong>
-                    </div>
-                    <div class="account-badge">
-                        <span>T. Crédito Total</span>
-                        <strong id="ccDebtBalance" style="color: var(--danger);">$0.00</strong>
-                    </div>
+                    <div class="account-badge"><span>Efectivo</span><strong id="cashBalance">$0.00</strong></div>
+                    <div class="account-badge"><span>Banco</span><strong id="bankBalance">$0.00</strong></div>
+                    <div class="account-badge"><span>T. Crédito Total</span><strong id="ccDebtBalance" style="color: var(--danger);">$0.00</strong></div>
                 </div>
             </div>
 
@@ -167,14 +166,8 @@
                         <option value="Otros">📦 Otros</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Monto ($)</label>
-                    <input type="number" id="amount" placeholder="0.00" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>Nota / Descripción</label>
-                    <input type="text" id="note" placeholder="Ej. Compra de despensa">
-                </div>
+                <div class="form-group"><label>Monto ($)</label><input type="number" id="amount" placeholder="0.00" step="0.01"></div>
+                <div class="form-group"><label>Nota / Descripción</label><input type="text" id="note" placeholder="Ej. Compra de despensa"></div>
                 <div class="btn-group">
                     <button class="btn-expense" onclick="addTransaction('Gasto')">Gasto 📉</button>
                     <button class="btn-income" onclick="addTransaction('Ingreso')">Ingreso 📈</button>
@@ -182,13 +175,8 @@
             </div>
 
             <div class="card">
-                <div class="section-title">
-                    <span>Historial de Movimientos</span>
-                    <span id="txCount" style="font-size: 11px; color: var(--text-muted);">0</span>
-                </div>
-                <ul class="transaction-list" id="transactionList">
-                    <div class="empty-state">Cargando datos...</div>
-                </ul>
+                <div class="section-title"><span>Historial de Movimientos</span><span id="txCount" style="font-size: 11px; color: var(--text-muted);">0</span></div>
+                <ul class="transaction-list" id="transactionList"><div class="empty-state">Cargando datos...</div></ul>
             </div>
         </div>
 
@@ -218,10 +206,7 @@
                 <button class="btn-primary btn-expense" onclick="savePersonalDebt()">Guardar Deuda 📉</button>
             </div>
             <div class="card">
-                <div class="section-title">
-                    <span>Control de Deudas</span>
-                    <strong id="totalDebtAmount" style="color: var(--danger); font-size: 13px;">$0.00</strong>
-                </div>
+                <div class="section-title"><span>Control de Deudas</span><strong id="totalDebtAmount" style="color: var(--danger); font-size: 13px;">$0.00</strong></div>
                 <div id="personalDebtsList"><div class="empty-state">No hay deudas registradas</div></div>
             </div>
         </div>
@@ -244,45 +229,78 @@
     </div>
 
     <script>
-        // 🔑 CAMBIA AQUÍ TU CONTRASEÑA SECRETA:
-        const MASTER_PASSWORD = "mi_clave_secreta_123";
-
         const SUPABASE_URL = 'https://flxsufbwttizbqtymqrb.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_5R_cgDMLtMh9JQPpUow5YQ_epltv-V6';
         
         const { createClient } = supabase;
         const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        let isRegistering = false;
+        let currentUser = null;
         let transactions = [];
         let creditCards = [];
         let personalDebts = [];
 
-        // Comprobar si ya inició sesión antes en este dispositivo
-        window.onload = function() {
-            if (localStorage.getItem("finanzas_auth") === "true") {
+        // Comprobar sesión activa al cargar
+        window.onload = async function() {
+            const { data: { session } } = await _supabase.auth.getSession();
+            if (session) {
+                currentUser = session.user;
                 unlockApp();
             }
         };
 
-        function verifyAccess() {
-            const inputPass = document.getElementById('accessPassword').value;
-            if (inputPass === MASTER_PASSWORD) {
-                localStorage.setItem("finanzas_auth", "true");
-                unlockApp();
+        function toggleAuthMode() {
+            isRegistering = !isRegistering;
+            document.getElementById('authTitle').textContent = isRegistering ? 'Crear Cuenta Nueva' : 'Iniciar Sesión';
+            document.getElementById('authSubtitle').textContent = isRegistering ? 'Regístrate con tu correo y contraseña' : 'Gestiona tus finanzas personales de forma segura';
+            document.getElementById('authBtn').textContent = isRegistering ? 'Registrarse' : 'Entrar';
+            document.getElementById('authSwitchText').innerHTML = isRegistering ? '¿Ya tienes cuenta? Inicia sesión aquí' : '¿No tienes cuenta? Regístrate aquí';
+            document.getElementById('authError').style.display = 'none';
+        }
+
+        async function handleAuth() {
+            const email = document.getElementById('authEmail').value.trim();
+            const password = document.getElementById('authPassword').value;
+            const errEl = document.getElementById('authError');
+            errEl.style.display = 'none';
+
+            if (!email || !password) {
+                errEl.textContent = "Completa el correo y la contraseña.";
+                errEl.style.display = 'block';
+                return;
+            }
+
+            if (isRegistering) {
+                const { data, error } = await _supabase.auth.signUp({ email, password });
+                if (error) {
+                    errEl.textContent = error.message;
+                    errEl.style.display = 'block';
+                } else {
+                    alert("¡Cuenta creada con éxito! Ya puedes iniciar sesión.");
+                    toggleAuthMode();
+                }
             } else {
-                document.getElementById('loginError').style.display = 'block';
+                const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
+                if (error) {
+                    errEl.textContent = "Correo o contraseña incorrectos.";
+                    errEl.style.display = 'block';
+                } else {
+                    currentUser = data.user;
+                    unlockApp();
+                }
             }
         }
 
-        function unlockApp() {
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('mainAppContainer').classList.add('active');
-            fetchData();
+        async function logout() {
+            await _supabase.auth.signOut();
+            location.reload();
         }
 
-        function logout() {
-            localStorage.removeItem("finanzas_auth");
-            location.reload();
+        function unlockApp() {
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('mainAppContainer').classList.add('active');
+            fetchData();
         }
 
         function switchTab(tabName) {
@@ -354,7 +372,7 @@
                 }
             }
 
-            const { error } = await _supabase.from('transactions').insert([{ type, account, category, amount, note, credit_card_name }]);
+            const { error } = await _supabase.from('transactions').insert([{ type, account, category, amount, note, credit_card_name, user_id: currentUser.id }]);
             if (!error) {
                 document.getElementById('amount').value = '';
                 document.getElementById('note').value = '';
@@ -370,7 +388,7 @@
 
             if(!name || isNaN(limit)) { alert("Completa los datos de la tarjeta."); return; }
 
-            const { error } = await _supabase.from('credit_cards').insert([{ name, "limit": limit, cut_day, pay_day }]);
+            const { error } = await _supabase.from('credit_cards').insert([{ name, "limit": limit, cut_day, pay_day, user_id: currentUser.id }]);
             if(!error) {
                 document.getElementById('ccName').value = '';
                 document.getElementById('ccLimit').value = '';
@@ -394,7 +412,7 @@
 
             if(!creditor || !amount) { alert("Indica acreedor y monto."); return; }
 
-            const { error } = await _supabase.from('personal_debts').insert([{ creditor, original_amount: amount, remaining_amount: amount, note }]);
+            const { error } = await _supabase.from('personal_debts').insert([{ creditor, original_amount: amount, remaining_amount: amount, note, user_id: currentUser.id }]);
             if(!error) {
                 document.getElementById('debtCreditor').value = '';
                 document.getElementById('debtAmount').value = '';
@@ -432,7 +450,7 @@
             const account = document.getElementById('salaryAccount').value;
             if(!amount || amount <= 0) return;
 
-            const { error } = await _supabase.from('transactions').insert([{ type: 'Ingreso', account, category: 'Salario', amount, note: 'Sueldo mensual' }]);
+            const { error } = await _supabase.from('transactions').insert([{ type: 'Ingreso', account, category: 'Salario', amount, note: 'Sueldo mensual', user_id: currentUser.id }]);
             if(!error) {
                 switchTab('dashboard');
                 fetchData();
@@ -577,4 +595,3 @@
     </script>
 </body>
 </html>
-
