@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas Personales Pro - Cloud</title>
+    <title>Finanzas Personales Pro - Familiar</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -22,7 +22,7 @@
         .container { width: 100%; max-width: 480px; display: none; }
         .container.active { display: block; }
         
-        /* Pantalla de Login / Registro */
+        /* Pantalla de Login */
         #authScreen { width: 100%; max-width: 380px; background: var(--card-bg); padding: 25px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.4); text-align: center; }
         #authScreen h2 { margin-bottom: 8px; font-size: 22px; color: var(--accent); }
         #authScreen p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
@@ -37,7 +37,6 @@
 
         .card { background: var(--card-bg); padding: 16px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); margin-bottom: 15px; border: 1px solid var(--border); }
         
-        /* Alertas Modernas */
         #alertContainer { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
         .alert-banner { background: rgba(245, 158, 11, 0.15); border: 1px solid var(--warning); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
         .alert-banner.danger { background: rgba(239, 68, 68, 0.15); border-color: var(--danger); }
@@ -81,40 +80,34 @@
         .view-section { display: none; }
         .view-section.active { display: block; }
         .empty-state { text-align: center; color: var(--text-muted); padding: 15px; font-size: 13px; }
-        .auth-switch { margin-top: 15px; font-size: 12px; color: var(--text-muted); cursor: pointer; }
-        .auth-switch span { color: var(--info); text-decoration: underline; }
     </style>
 </head>
 <body>
 
-    <!-- PANTALLA DE AUTENTICACIÓN (LOGIN / REGISTRO) -->
+    <!-- PANTALLA DE ACCESO POR USUARIO Y CLAVE -->
     <div id="authScreen">
-        <h2 id="authTitle">Iniciar Sesión</h2>
-        <p id="authSubtitle">Gestiona tus finanzas personales de forma segura</p>
+        <h2>Control Familiar</h2>
+        <p>Ingresa con tu usuario y contraseña</p>
         
         <div class="form-group">
-            <label>Correo Electrónico</label>
-            <input type="email" id="authEmail" placeholder="tu@correo.com">
+            <label>Usuario</label>
+            <input type="text" id="loginUser" placeholder="Ej. kaviel, mama, esposa">
         </div>
         <div class="form-group">
             <label>Contraseña</label>
-            <input type="password" id="authPassword" placeholder="••••••••">
+            <input type="password" id="loginPass" placeholder="••••••••">
         </div>
         
-        <button class="btn-primary" id="authBtn" onclick="handleAuth()">Entrar</button>
+        <button class="btn-primary" onclick="login()">Entrar al Sistema</button>
         <p id="authError" style="color: var(--danger); font-size: 12px; margin-top: 10px; display: none;"></p>
-        
-        <div class="auth-switch" onclick="toggleAuthMode()">
-            <span id="authSwitchText">¿No tienes cuenta? Regístrate aquí</span>
-        </div>
     </div>
 
     <!-- APLICACIÓN PRINCIPAL -->
     <div class="container" id="mainAppContainer">
         <header>
-            <h1>💼 Finanzas Pro Cloud</h1>
+            <h1 id="welcomeUser">💼 Finanzas Pro</h1>
             <div style="display: flex; gap: 8px; align-items: center;">
-                <span id="syncStatus" style="font-size: 11px; color: var(--accent);">Conectando...</span>
+                <span id="syncStatus" style="font-size: 11px; color: var(--accent);">Sincronizando...</span>
                 <button onclick="logout()" style="background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger); padding: 4px 8px; font-size: 11px; border-radius: 6px;">Salir</button>
             </div>
         </header>
@@ -235,71 +228,51 @@
         const { createClient } = supabase;
         const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        let isRegistering = false;
-        let currentUser = null;
+        // ========================================================
+        // 🛠️ AQUÍ PUEDES CONFIGURAR LOS USUARIOS Y CLAVES QUE TÚ QUIERAS
+        // ========================================================
+        const USERS_DB = {
+            "kaviel": "1234",     // Tu usuario y clave
+            "esposa": "abcd",     // Usuario y clave para tu esposa
+            "mama": "mama2026"    // Usuario y clave para tu mamá
+        };
+
+        let currentUsername = localStorage.getItem('finanzas_user') || null;
         let transactions = [];
         let creditCards = [];
         let personalDebts = [];
 
-        // Comprobar sesión activa al cargar
-        window.onload = async function() {
-            const { data: { session } } = await _supabase.auth.getSession();
-            if (session) {
-                currentUser = session.user;
+        window.onload = function() {
+            if (currentUsername && USERS_DB[currentUsername]) {
                 unlockApp();
             }
         };
 
-        function toggleAuthMode() {
-            isRegistering = !isRegistering;
-            document.getElementById('authTitle').textContent = isRegistering ? 'Crear Cuenta Nueva' : 'Iniciar Sesión';
-            document.getElementById('authSubtitle').textContent = isRegistering ? 'Regístrate con tu correo y contraseña' : 'Gestiona tus finanzas personales de forma segura';
-            document.getElementById('authBtn').textContent = isRegistering ? 'Registrarse' : 'Entrar';
-            document.getElementById('authSwitchText').innerHTML = isRegistering ? '¿Ya tienes cuenta? Inicia sesión aquí' : '¿No tienes cuenta? Regístrate aquí';
-            document.getElementById('authError').style.display = 'none';
-        }
-
-        async function handleAuth() {
-            const email = document.getElementById('authEmail').value.trim();
-            const password = document.getElementById('authPassword').value;
+        function login() {
+            const user = document.getElementById('loginUser').value.trim().toLowerCase();
+            const pass = document.getElementById('loginPass').value;
             const errEl = document.getElementById('authError');
             errEl.style.display = 'none';
 
-            if (!email || !password) {
-                errEl.textContent = "Completa el correo y la contraseña.";
-                errEl.style.display = 'block';
-                return;
-            }
-
-            if (isRegistering) {
-                const { data, error } = await _supabase.auth.signUp({ email, password });
-                if (error) {
-                    errEl.textContent = error.message;
-                    errEl.style.display = 'block';
-                } else {
-                    alert("¡Cuenta creada con éxito! Ya puedes iniciar sesión.");
-                    toggleAuthMode();
-                }
+            if (USERS_DB[user] && USERS_DB[user] === pass) {
+                currentUsername = user;
+                localStorage.setItem('finanzas_user', user);
+                unlockApp();
             } else {
-                const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
-                if (error) {
-                    errEl.textContent = "Correo o contraseña incorrectos.";
-                    errEl.style.display = 'block';
-                } else {
-                    currentUser = data.user;
-                    unlockApp();
-                }
+                errEl.textContent = "Usuario o contraseña incorrectos.";
+                errEl.style.display = 'block';
             }
         }
 
-        async function logout() {
-            await _supabase.auth.signOut();
+        function logout() {
+            localStorage.removeItem('finanzas_user');
             location.reload();
         }
 
         function unlockApp() {
             document.getElementById('authScreen').style.display = 'none';
             document.getElementById('mainAppContainer').classList.add('active');
+            document.getElementById('welcomeUser').textContent = `💼 Hola, ${currentUsername.toUpperCase()}`;
             fetchData();
         }
 
@@ -335,10 +308,11 @@
 
         async function fetchData() {
             document.getElementById('syncStatus').textContent = 'Sincronizando...';
+            // Filtramos la información en Supabase basándonos estrictamente en el texto del usuario actual
             const [txRes, ccRes, debtRes] = await Promise.all([
-                _supabase.from('transactions').select('*').order('created_at', { ascending: false }),
-                _supabase.from('credit_cards').select('*'),
-                _supabase.from('personal_debts').select('*').order('created_at', { ascending: false })
+                _supabase.from('transactions').select('*').eq('username', currentUsername).order('created_at', { ascending: false }),
+                _supabase.from('credit_cards').select('*').eq('username', currentUsername),
+                _supabase.from('personal_debts').select('*').eq('username', currentUsername).order('created_at', { ascending: false })
             ]);
 
             if (txRes.error || ccRes.error || debtRes.error) {
@@ -372,7 +346,7 @@
                 }
             }
 
-            const { error } = await _supabase.from('transactions').insert([{ type, account, category, amount, note, credit_card_name, user_id: currentUser.id }]);
+            const { error } = await _supabase.from('transactions').insert([{ type, account, category, amount, note, credit_card_name, username: currentUsername }]);
             if (!error) {
                 document.getElementById('amount').value = '';
                 document.getElementById('note').value = '';
@@ -388,7 +362,7 @@
 
             if(!name || isNaN(limit)) { alert("Completa los datos de la tarjeta."); return; }
 
-            const { error } = await _supabase.from('credit_cards').insert([{ name, "limit": limit, cut_day, pay_day, user_id: currentUser.id }]);
+            const { error } = await _supabase.from('credit_cards').insert([{ name, "limit": limit, cut_day, pay_day, username: currentUsername }]);
             if(!error) {
                 document.getElementById('ccName').value = '';
                 document.getElementById('ccLimit').value = '';
@@ -412,7 +386,7 @@
 
             if(!creditor || !amount) { alert("Indica acreedor y monto."); return; }
 
-            const { error } = await _supabase.from('personal_debts').insert([{ creditor, original_amount: amount, remaining_amount: amount, note, user_id: currentUser.id }]);
+            const { error } = await _supabase.from('personal_debts').insert([{ creditor, original_amount: amount, remaining_amount: amount, note, username: currentUsername }]);
             if(!error) {
                 document.getElementById('debtCreditor').value = '';
                 document.getElementById('debtAmount').value = '';
@@ -450,7 +424,7 @@
             const account = document.getElementById('salaryAccount').value;
             if(!amount || amount <= 0) return;
 
-            const { error } = await _supabase.from('transactions').insert([{ type: 'Ingreso', account, category: 'Salario', amount, note: 'Sueldo mensual', user_id: currentUser.id }]);
+            const { error } = await _supabase.from('transactions').insert([{ type: 'Ingreso', account, category: 'Salario', amount, note: 'Sueldo mensual', username: currentUsername }]);
             if(!error) {
                 switchTab('dashboard');
                 fetchData();
@@ -595,3 +569,4 @@
     </script>
 </body>
 </html>
+
