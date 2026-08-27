@@ -22,7 +22,6 @@
         .container { width: 100%; max-width: 480px; display: none; }
         .container.active { display: block; }
         
-        /* Pantalla de Login */
         #authScreen { width: 100%; max-width: 380px; background: var(--card-bg); padding: 25px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.4); text-align: center; }
         #authScreen h2 { margin-bottom: 8px; font-size: 22px; color: var(--accent); }
         #authScreen p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
@@ -30,7 +29,6 @@
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         h1 { font-size: 18px; color: var(--text); }
         
-        /* Pestañas */
         .tabs { display: flex; background: var(--card-bg); border-radius: 10px; padding: 4px; margin-bottom: 15px; border: 1px solid var(--border); overflow-x: auto; }
         .tab { flex: 1; text-align: center; padding: 8px 4px; font-size: 11px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: 8px; transition: 0.2s; white-space: nowrap; }
         .tab.active { background: var(--accent); color: white; }
@@ -73,9 +71,9 @@
         .delete-btn:hover { color: var(--danger); }
         .pay-btn { background: rgba(16, 185, 129, 0.15); border: 1px solid var(--accent); color: var(--accent); border-radius: 6px; padding: 4px 8px; font-size: 11px; font-weight: bold; cursor: pointer; }
         
-        .credit-card-box, .debt-box { background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
-        .cc-header, .debt-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 6px; color: var(--warning); }
-        .cc-details, .debt-details { display: grid; grid-template-columns: 1fr 1fr; font-size: 11px; color: var(--text-muted); gap: 4px; }
+        .credit-card-box, .debt-box, .user-box { background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+        .cc-header, .debt-header, .user-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 6px; color: var(--warning); }
+        .cc-details, .debt-details, .user-details { display: grid; grid-template-columns: 1fr 1fr; font-size: 11px; color: var(--text-muted); gap: 4px; }
         
         .view-section { display: none; }
         .view-section.active { display: block; }
@@ -84,7 +82,7 @@
 </head>
 <body>
 
-    <!-- PANTALLA DE ACCESO POR USUARIO Y CLAVE -->
+    <!-- PANTALLA DE ACCESO -->
     <div id="authScreen">
         <h2>Control Familiar</h2>
         <p>Ingresa con tu usuario y contraseña</p>
@@ -112,11 +110,12 @@
             </div>
         </header>
 
-        <div class="tabs">
+        <div class="tabs" id="appTabs">
             <div class="tab active" onclick="switchTab('dashboard')">Panel</div>
             <div class="tab" onclick="switchTab('cards')">Tarjetas</div>
             <div class="tab" onclick="switchTab('debts')">Deudas</div>
             <div class="tab" onclick="switchTab('salary')">Sueldo</div>
+            <div class="tab" id="adminTabBtn" onclick="switchTab('admin')" style="display:none; color: var(--warning);">Usuarios ⚙️</div>
         </div>
 
         <div id="alertContainer"></div>
@@ -219,6 +218,20 @@
                 <button class="btn-primary btn-income" onclick="applySalary()">Ingresar Sueldo Ahora 🚀</button>
             </div>
         </div>
+
+        <!-- VISTA 5: ADMIN (SOLO PARA KAVIEL) -->
+        <div id="view-admin" class="view-section">
+            <div class="card">
+                <div class="section-title"><span>⚙️ Crear o Modificar Usuario</span></div>
+                <div class="form-group"><label>Nombre de Usuario</label><input type="text" id="newUsername" placeholder="Ej. hermana, tio"></div>
+                <div class="form-group"><label>Contraseña</label><input type="text" id="newPassword" placeholder="Clave de acceso"></div>
+                <button class="btn-primary" onclick="saveUserAdmin()">Guardar / Actualizar Usuario</button>
+            </div>
+            <div class="card">
+                <div class="section-title"><span>Lista de Usuarios Permitidos</span></div>
+                <div id="usersAdminList"><div class="empty-state">Cargando usuarios...</div></div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -228,38 +241,44 @@
         const { createClient } = supabase;
         const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // ========================================================
-        // 🛠️ AQUÍ PUEDES CONFIGURAR LOS USUARIOS Y CLAVES QUE TÚ QUIERAS
-        // ========================================================
-        const USERS_DB = {
-            "kaviel": "1234",     // Tu usuario y clave
-            "esposa": "abcd",     // Usuario y clave para tu esposa
-            "mama": "mama2026"    // Usuario y clave para tu mamá
-        };
-
         let currentUsername = localStorage.getItem('finanzas_user') || null;
         let transactions = [];
         let creditCards = [];
         let personalDebts = [];
 
         window.onload = function() {
-            if (currentUsername && USERS_DB[currentUsername]) {
+            if (currentUsername) {
                 unlockApp();
             }
         };
 
-        function login() {
+        async function login() {
             const user = document.getElementById('loginUser').value.trim().toLowerCase();
             const pass = document.getElementById('loginPass').value;
             const errEl = document.getElementById('authError');
             errEl.style.display = 'none';
 
-            if (USERS_DB[user] && USERS_DB[user] === pass) {
+            if (!user || !pass) {
+                errEl.textContent = "Ingresa usuario y contraseña.";
+                errEl.style.display = 'block';
+                return;
+            }
+
+            // Consultar si el usuario existe en la tabla de usuarios de Supabase
+            const { data, error } = await _supabase.from('app_users').select('*').eq('username', user).single();
+
+            if (error || !data) {
+                errEl.textContent = "El usuario no existe.";
+                errEl.style.display = 'block';
+                return;
+            }
+
+            if (data.password === pass) {
                 currentUsername = user;
                 localStorage.setItem('finanzas_user', user);
                 unlockApp();
             } else {
-                errEl.textContent = "Usuario o contraseña incorrectos.";
+                errEl.textContent = "Contraseña incorrecta.";
                 errEl.style.display = 'block';
             }
         }
@@ -273,13 +292,21 @@
             document.getElementById('authScreen').style.display = 'none';
             document.getElementById('mainAppContainer').classList.add('active');
             document.getElementById('welcomeUser').textContent = `💼 Hola, ${currentUsername.toUpperCase()}`;
+            
+            // Si es kaviel, mostrar la pestaña de administración
+            if (currentUsername === 'kaviel') {
+                document.getElementById('adminTabBtn').style.display = 'block';
+            }
+
             fetchData();
+            if (currentUsername === 'kaviel') fetchUsersAdmin();
         }
 
         function switchTab(tabName) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-            const tabsMap = { dashboard: 0, cards: 1, debts: 2, salary: 3 };
+            
+            const tabsMap = { dashboard: 0, cards: 1, debts: 2, salary: 3, admin: 4 };
             document.querySelectorAll('.tab')[tabsMap[tabName]].classList.add('active');
             document.getElementById(`view-${tabName}`).classList.add('active');
         }
@@ -308,7 +335,6 @@
 
         async function fetchData() {
             document.getElementById('syncStatus').textContent = 'Sincronizando...';
-            // Filtramos la información en Supabase basándonos estrictamente en el texto del usuario actual
             const [txRes, ccRes, debtRes] = await Promise.all([
                 _supabase.from('transactions').select('*').eq('username', currentUsername).order('created_at', { ascending: false }),
                 _supabase.from('credit_cards').select('*').eq('username', currentUsername),
@@ -316,7 +342,7 @@
             ]);
 
             if (txRes.error || ccRes.error || debtRes.error) {
-                document.getElementById('syncStatus').textContent = 'Error de conexión';
+                document.getElementById('syncStatus').textContent = '🟢 En línea (Sin datos aún)';
             } else {
                 transactions = txRes.data || [];
                 creditCards = ccRes.data || [];
@@ -327,6 +353,57 @@
                 renderCards();
                 renderDebts();
                 checkPaymentAlerts(); 
+            }
+        }
+
+        // FUNCIONES DE ADMINISTRADOR PARA GESTIONAR USUARIOS
+        async function fetchUsersAdmin() {
+            const container = document.getElementById('usersAdminList');
+            const { data, error } = await _supabase.from('app_users').select('*');
+            if (error || !data) {
+                container.innerHTML = '<div class="empty-state">Error al cargar usuarios</div>';
+                return;
+            }
+            container.innerHTML = '';
+            data.forEach(u => {
+                const div = document.createElement('div');
+                div.className = 'user-box';
+                div.innerHTML = `
+                    <div class="user-header"><span>👤 ${u.username}</span> ${u.username !== 'kaviel' ? `<button class="delete-btn" onclick="deleteUserAdmin('${u.username}')">&times;</button>` : ''}</div>
+                    <div class="user-details">
+                        <div>Contraseña: <strong>${u.password}</strong></div>
+                        <div>Rol: <strong>${u.username === 'kaviel' ? 'Administrador' : 'Familiar'}</strong></div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function saveUserAdmin() {
+            const username = document.getElementById('newUsername').value.trim().toLowerCase();
+            const password = document.getElementById('newPassword').value.trim();
+
+            if (!username || !password) {
+                alert("Completa el usuario y la contraseña.");
+                return;
+            }
+
+            // Upsert (crea si no existe, o actualiza la clave si ya existe)
+            const { error } = await _supabase.from('app_users').upsert([{ username, password }], { onConflict: 'username' });
+            if (error) {
+                alert("Error al guardar usuario: " + error.message);
+            } else {
+                alert(`¡Usuario "${username}" guardado con éxito!`);
+                document.getElementById('newUsername').value = '';
+                document.getElementById('newPassword').value = '';
+                fetchUsersAdmin();
+            }
+        }
+
+        async function deleteUserAdmin(username) {
+            if (confirm(`¿Estás seguro de eliminar al usuario "${username}"?`)) {
+                const { error } = await _supabase.from('app_users').delete().eq('username', username);
+                if (!error) fetchUsersAdmin();
             }
         }
 
