@@ -22,7 +22,7 @@
         .container { width: 100%; max-width: 480px; display: none; }
         .container.active { display: block; }
         
-        #authScreen { width: 100%; max-width: 380px; background: var(--card-bg); padding: 25px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.4); text-align: center; }
+        #authScreen { width: 100%; max-width: 380px; background: var(--card-bg); padding: 25px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.4); text-align: center; margin: auto; }
         #authScreen h2 { margin-bottom: 8px; font-size: 22px; color: var(--accent); }
         #authScreen p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
 
@@ -89,7 +89,7 @@
         
         <div class="form-group">
             <label>Usuario</label>
-            <input type="text" id="loginUser" placeholder="Ej. usuario123">
+            <input type="text" id="loginUser" placeholder="Ej. kaviel">
         </div>
         <div class="form-group">
             <label>Contraseña</label>
@@ -219,11 +219,11 @@
             </div>
         </div>
 
-        <!-- VISTA 5: ADMIN (SOLO PARA KAVIEL) -->
+        <!-- VISTA 5: ADMIN -->
         <div id="view-admin" class="view-section">
             <div class="card">
                 <div class="section-title"><span>⚙️ Crear o Modificar Usuario</span></div>
-                <div class="form-group"><label>Nombre de Usuario</label><input type="text" id="newUsername" placeholder="Ej. hermana, tio"></div>
+                <div class="form-group"><label>Nombre de Usuario</label><input type="text" id="newUsername" placeholder="Ej. esposa, mama"></div>
                 <div class="form-group"><label>Contraseña</label><input type="text" id="newPassword" placeholder="Clave de acceso"></div>
                 <button class="btn-primary" onclick="saveUserAdmin()">Guardar / Actualizar Usuario</button>
             </div>
@@ -264,7 +264,6 @@
                 return;
             }
 
-            // Consultar si el usuario existe en la tabla de usuarios de Supabase
             const { data, error } = await _supabase.from('app_users').select('*').eq('username', user).single();
 
             if (error || !data) {
@@ -293,7 +292,6 @@
             document.getElementById('mainAppContainer').classList.add('active');
             document.getElementById('welcomeUser').textContent = `💼 Hola, ${currentUsername.toUpperCase()}`;
             
-            // Si es kaviel, mostrar la pestaña de administración
             if (currentUsername === 'kaviel') {
                 document.getElementById('adminTabBtn').style.display = 'block';
             }
@@ -335,28 +333,29 @@
 
         async function fetchData() {
             document.getElementById('syncStatus').textContent = 'Sincronizando...';
-            const [txRes, ccRes, debtRes] = await Promise.all([
-                _supabase.from('transactions').select('*').eq('username', currentUsername).order('created_at', { ascending: false }),
-                _supabase.from('credit_cards').select('*').eq('username', currentUsername),
-                _supabase.from('personal_debts').select('*').eq('username', currentUsername).order('created_at', { ascending: false })
-            ]);
+            try {
+                const [txRes, ccRes, debtRes] = await Promise.all([
+                    _supabase.from('transactions').select('*').eq('username', currentUsername).order('created_at', { ascending: false }),
+                    _supabase.from('credit_cards').select('*').eq('username', currentUsername),
+                    _supabase.from('personal_debts').select('*').eq('username', currentUsername).order('created_at', { ascending: false })
+                ]);
 
-            if (txRes.error || ccRes.error || debtRes.error) {
-                document.getElementById('syncStatus').textContent = '🟢 En línea (Sin datos aún)';
-            } else {
                 transactions = txRes.data || [];
                 creditCards = ccRes.data || [];
                 personalDebts = debtRes.data || [];
+                
                 document.getElementById('syncStatus').textContent = '🟢 En línea';
                 toggleCardSelector();
                 updateUI();
                 renderCards();
                 renderDebts();
                 checkPaymentAlerts(); 
+            } catch (err) {
+                console.error("Error al sincronizar:", err);
+                document.getElementById('syncStatus').textContent = '🟢 En línea (Sin datos aún)';
             }
         }
 
-        // FUNCIONES DE ADMINISTRADOR PARA GESTIONAR USUARIOS
         async function fetchUsersAdmin() {
             const container = document.getElementById('usersAdminList');
             const { data, error } = await _supabase.from('app_users').select('*');
@@ -388,7 +387,6 @@
                 return;
             }
 
-            // Upsert (crea si no existe, o actualiza la clave si ya existe)
             const { error } = await _supabase.from('app_users').upsert([{ username, password }], { onConflict: 'username' });
             if (error) {
                 alert("Error al guardar usuario: " + error.message);
@@ -410,11 +408,16 @@
         async function addTransaction(type) {
             const account = document.getElementById('account').value;
             const category = document.getElementById('category').value;
-            const amount = parseFloat(document.getElementById('amount').value);
+            const amountInput = document.getElementById('amount').value;
+            const amount = parseFloat(amountInput);
             const note = document.getElementById('note').value;
             let credit_card_name = null;
 
-            if (!amount || amount <= 0) { alert("Ingresa un monto válido."); return; }
+            if (isNaN(amount) || amount <= 0) { 
+                alert("Ingresa un monto válido mayor a 0."); 
+                return; 
+            }
+
             if (account === 'Tarjeta de Crédito') {
                 credit_card_name = document.getElementById('specificCard').value;
                 if (!credit_card_name || credit_card_name.includes('No hay tarjetas')) {
@@ -423,8 +426,19 @@
                 }
             }
 
-            const { error } = await _supabase.from('transactions').insert([{ type, account, category, amount, note, credit_card_name, username: currentUsername }]);
-            if (!error) {
+            const { error } = await _supabase.from('transactions').insert([{ 
+                type, 
+                account, 
+                category, 
+                amount, 
+                note, 
+                credit_card_name, 
+                username: currentUsername 
+            }]);
+
+            if (error) {
+                alert("Error al guardar: " + error.message);
+            } else {
                 document.getElementById('amount').value = '';
                 document.getElementById('note').value = '';
                 fetchData();
@@ -440,7 +454,9 @@
             if(!name || isNaN(limit)) { alert("Completa los datos de la tarjeta."); return; }
 
             const { error } = await _supabase.from('credit_cards').insert([{ name, "limit": limit, cut_day, pay_day, username: currentUsername }]);
-            if(!error) {
+            if(error) {
+                alert("Error: " + error.message);
+            } else {
                 document.getElementById('ccName').value = '';
                 document.getElementById('ccLimit').value = '';
                 document.getElementById('ccCutDay').value = '';
@@ -457,14 +473,16 @@
         }
 
         async function savePersonalDebt() {
-            const creditor = document.getElementById('debtCreditor').value;
+            const creditor = document.getElementById('debtCreditor').value.trim();
             const amount = parseFloat(document.getElementById('debtAmount').value);
             const note = document.getElementById('debtNote').value;
 
-            if(!creditor || !amount) { alert("Indica acreedor y monto."); return; }
+            if(!creditor || isNaN(amount)) { alert("Indica acreedor y monto."); return; }
 
             const { error } = await _supabase.from('personal_debts').insert([{ creditor, original_amount: amount, remaining_amount: amount, note, username: currentUsername }]);
-            if(!error) {
+            if(error) {
+                alert("Error: " + error.message);
+            } else {
                 document.getElementById('debtCreditor').value = '';
                 document.getElementById('debtAmount').value = '';
                 document.getElementById('debtNote').value = '';
@@ -499,10 +517,12 @@
         async function applySalary() {
             const amount = parseFloat(document.getElementById('salaryAmount').value);
             const account = document.getElementById('salaryAccount').value;
-            if(!amount || amount <= 0) return;
+            if(isNaN(amount) || amount <= 0) { alert("Ingresa un sueldo válido"); return; }
 
             const { error } = await _supabase.from('transactions').insert([{ type: 'Ingreso', account, category: 'Salario', amount, note: 'Sueldo mensual', username: currentUsername }]);
-            if(!error) {
+            if(error) {
+                alert("Error: " + error.message);
+            } else {
                 switchTab('dashboard');
                 fetchData();
             }
