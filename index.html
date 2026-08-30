@@ -46,7 +46,7 @@
         .balance-title { font-size: 12px; color: var(--text-muted); text-align: center; text-transform: uppercase; letter-spacing: 1px; }
         .balance-amount { text-align: center; font-size: 28px; font-weight: 800; color: var(--accent); margin: 5px 0 12px 0; }
         
-        .accounts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+        .accounts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
         .account-badge { background: rgba(255,255,255,0.03); padding: 8px; border-radius: 10px; text-align: center; border: 1px solid var(--border); }
         .account-badge span { display: block; font-size: 10px; color: var(--text-muted); }
         .account-badge strong { font-size: 13px; }
@@ -132,6 +132,7 @@
                 <div class="accounts-grid">
                     <div class="account-badge"><span>Efectivo</span><strong id="cashBalance">$0.00</strong></div>
                     <div class="account-badge"><span>Banco</span><strong id="bankBalance">$0.00</strong></div>
+                    <div class="account-badge"><span>Criptomonedas</span><strong id="cryptoBalance" style="color: var(--info);">$0.00</strong></div>
                     <div class="account-badge"><span>T. Crédito Total</span><strong id="ccDebtBalance" style="color: var(--danger);">$0.00</strong></div>
                 </div>
             </div>
@@ -142,6 +143,7 @@
                     <select id="account" onchange="toggleCardSelector()">
                         <option value="Efectivo">💵 Efectivo</option>
                         <option value="Banco">💳 Cuenta Bancaria</option>
+                        <option value="Criptomonedas">₿ Criptomonedas</option>
                         <option value="Tarjeta de Crédito">💳 Tarjeta de Crédito</option>
                     </select>
                 </div>
@@ -170,6 +172,7 @@
                         <option value="Salario">💰 Ingreso de Sueldo</option>
                         <option value="Servicios">🏠 Servicios (Luz, Agua, Internet)</option>
                         <option value="Entretenimiento">🎉 Entretenimiento</option>
+                        <option value="Inversión Cripto">📈 Inversión / Cripto</option>
                         <option value="Otros">📦 Otros</option>
                     </select>
                 </div>
@@ -228,6 +231,7 @@
                     <select id="salaryAccount">
                         <option value="Banco">💳 Cuenta Bancaria</option>
                         <option value="Efectivo">💵 Efectivo</option>
+                        <option value="Criptomonedas">₿ Criptomonedas</option>
                     </select>
                 </div>
                 <button class="btn-primary btn-income" onclick="applySalary()">Ingresar Sueldo Ahora 🚀</button>
@@ -591,7 +595,7 @@
         function updateUI() {
             const list = document.getElementById('transactionList');
             list.innerHTML = '';
-            let total = 0, cashTotal = 0, bankTotal = 0, ccDebtTotal = 0;
+            let total = 0, cashTotal = 0, bankTotal = 0, cryptoTotal = 0, ccDebtTotal = 0;
 
             if (transactions.length === 0) {
                 list.innerHTML = '<div class="empty-state">No hay movimientos</div>';
@@ -602,10 +606,12 @@
                         total += amt;
                         if (t.account === 'Efectivo') cashTotal += amt;
                         else if (t.account === 'Banco') bankTotal += amt;
+                        else if (t.account === 'Criptomonedas') cryptoTotal += amt;
                     } else {
                         total -= amt;
                         if (t.account === 'Efectivo') cashTotal -= amt;
                         else if (t.account === 'Banco') bankTotal -= amt;
+                        else if (t.account === 'Criptomonedas') cryptoTotal -= amt;
                         else if (t.account === 'Tarjeta de Crédito') ccDebtTotal += amt;
                     }
 
@@ -631,6 +637,7 @@
             document.getElementById('totalBalance').textContent = `$${total.toFixed(2)}`;
             document.getElementById('cashBalance').textContent = `$${Math.max(0, cashTotal).toFixed(2)}`;
             document.getElementById('bankBalance').textContent = `$${Math.max(0, bankTotal).toFixed(2)}`;
+            document.getElementById('cryptoBalance').textContent = `$${Math.max(0, cryptoTotal).toFixed(2)}`;
             document.getElementById('ccDebtBalance').textContent = `$${ccDebtTotal.toFixed(2)}`;
             document.getElementById('txCount').textContent = `${transactions.length} regs`;
         }
