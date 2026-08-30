@@ -78,6 +78,10 @@
         .view-section { display: none; }
         .view-section.active { display: block; }
         .empty-state { text-align: center; color: var(--text-muted); padding: 15px; font-size: 13px; }
+        
+        .payment-history { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--border); font-size: 11px; color: var(--text-muted); }
+        .payment-history ul { list-style: none; padding-left: 0; margin-top: 4px; }
+        .payment-history li { display: flex; justify-content: space-between; margin-bottom: 2px; }
     </style>
 </head>
 <body>
@@ -147,6 +151,17 @@
                     <select id="specificCard"></select>
                 </div>
 
+                <div class="form-group" id="deferredGroup" style="display: none;">
+                    <label>Tipo de Diferido</label>
+                    <select id="deferredMonths">
+                        <option value="1">Pago Corriente (1 Mes)</option>
+                        <option value="3">Diferido a 3 Meses</option>
+                        <option value="6">Diferido a 6 Meses</option>
+                        <option value="9">Diferido a 9 Meses</option>
+                        <option value="12">Diferido a 12 Meses</option>
+                    </select>
+                </div>
+
                 <div class="form-group">
                     <label>Categoría</label>
                     <select id="category">
@@ -158,7 +173,7 @@
                         <option value="Otros">📦 Otros</option>
                     </select>
                 </div>
-                <div class="form-group"><label>Monto ($)</label><input type="number" id="amount" placeholder="0.00" step="0.01"></div>
+                <div class="form-group"><label>Monto Total ($)</label><input type="number" id="amount" placeholder="0.00" step="0.01"></div>
                 <div class="form-group"><label>Nota / Descripción</label><input type="text" id="note" placeholder="Ej. Compra de despensa"></div>
                 <div class="btn-group">
                     <button class="btn-expense" onclick="addTransaction('Gasto')">Gasto 📉</button>
@@ -311,9 +326,14 @@
 
         function toggleCardSelector() {
             const account = document.getElementById('account').value;
-            const selectorGroup = document.getElementById('cardSelectorGroup');
-            selectorGroup.style.display = (account === 'Tarjeta de Crédito') ? 'block' : 'none';
-            if (account === 'Tarjeta de Crédito') populateCardDropdown();
+            const cardSelectorGroup = document.getElementById('cardSelectorGroup');
+            const deferredGroup = document.getElementById('deferredGroup');
+            
+            const isCard = (account === 'Tarjeta de Crédito');
+            cardSelectorGroup.style.display = isCard ? 'block' : 'none';
+            deferredGroup.style.display = isCard ? 'block' : 'none';
+
+            if (isCard) populateCardDropdown();
         }
 
         function populateCardDropdown() {
@@ -335,9 +355,9 @@
             document.getElementById('syncStatus').textContent = 'Sincronizando...';
             try {
                 const [txRes, ccRes, debtRes] = await Promise.all([
-                    _supabase.from('transactions').select('*').eq('username', currentUsername).order('created_at', { ascending: false }),
-                    _supabase.from('credit_cards').select('*').eq('username', currentUsername),
-                    _supabase.from('personal_debts').select('*').eq('username', currentUsername).order('created_at', { ascending: false })
+                    _supabase.from('transactions').select('*').order('created_at', { ascending: false }),
+                    _supabase.from('credit_cards').select('*'),
+                    _supabase.from('personal_debts').select('*').order('created_at', { ascending: false })
                 ]);
 
                 transactions = txRes.data || [];
@@ -409,7 +429,7 @@
             const account = document.getElementById('account').value;
             const category = document.getElementById('category').value;
             const amountInput = document.getElementById('amount').value;
-            const amount = parseFloat(amountInput);
+            let amount = parseFloat(amountInput);
             const note = document.getElementById('note').value;
             let credit_card_name = null;
 
@@ -424,16 +444,20 @@
                     alert("Selecciona una tarjeta de crédito válida.");
                     return;
                 }
+                const months = parseInt(document.getElementById('deferredMonths').value);
+                if (months > 1) {
+                    amount = amount / months;
+                }
             }
 
             const { error } = await _supabase.from('transactions').insert([{ 
+                username: currentUsername,
                 type, 
                 account, 
                 category, 
                 amount, 
                 note, 
-                credit_card_name, 
-                username: currentUsername 
+                credit_card_name
             }]);
 
             if (error) {
@@ -453,7 +477,7 @@
 
             if(!name || isNaN(limit)) { alert("Completa los datos de la tarjeta."); return; }
 
-            const { error } = await _supabase.from('credit_cards').insert([{ name, "limit": limit, cut_day, pay_day, username: currentUsername }]);
+            const { error } = await _supabase.from('credit_cards').insert([{ username: currentUsername, name, "limit": limit, cut_day, pay_day }]);
             if(error) {
                 alert("Error: " + error.message);
             } else {
@@ -479,7 +503,15 @@
 
             if(!creditor || isNaN(amount)) { alert("Indica acreedor y monto."); return; }
 
-            const { error } = await _supabase.from('personal_debts').insert([{ creditor, original_amount: amount, remaining_amount: amount, note, username: currentUsername }]);
+            const { error } = await _supabase.from('personal_debts').insert([{ 
+                username: currentUsername, 
+                creditor, 
+                original_amount: amount, 
+                remaining_amount: amount, 
+                note,
+                payments_history: [] 
+            }]);
+            
             if(error) {
                 alert("Error: " + error.message);
             } else {
@@ -490,21 +522,42 @@
             }
         }
 
-        async function makeDebtPayment(id, currentRemaining) {
+        async function makeDebtPayment(id, currentRemaining, currentHistory) {
             const paymentInput = prompt(`Abonar a deuda (Pendiente: $${currentRemaining.toFixed(2)})`);
             if (paymentInput === null) return;
             const paymentAmount = parseFloat(paymentInput);
             if (isNaN(paymentAmount) || paymentAmount <= 0) return;
 
+            const noteInput = prompt("Nota o descripción para este abono (opcional):", "Abono");
             const newRemaining = currentRemaining - paymentAmount;
+
+            let history = currentHistory || [];
+            if (!Array.isArray(history)) history = [];
+
+            history.push({
+                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                amount: paymentAmount,
+                note: noteInput || 'Abono'
+            });
+
             if (newRemaining <= 0) {
                 if (confirm("¿Saldar y eliminar esta deuda por completo?")) {
                     await _supabase.from('personal_debts').delete().eq('id', id);
+                    fetchData();
+                    return;
                 }
-            } else {
-                await _supabase.from('personal_debts').update({ remaining_amount: newRemaining }).eq('id', id);
             }
-            fetchData();
+
+            const { error } = await _supabase.from('personal_debts').update({ 
+                remaining_amount: Math.max(0, newRemaining),
+                payments_history: history
+            }).eq('id', id);
+
+            if (error) {
+                alert("Error al registrar abono: " + error.message);
+            } else {
+                fetchData();
+            }
         }
 
         async function deletePersonalDebt(id) {
@@ -519,7 +572,7 @@
             const account = document.getElementById('salaryAccount').value;
             if(isNaN(amount) || amount <= 0) { alert("Ingresa un sueldo válido"); return; }
 
-            const { error } = await _supabase.from('transactions').insert([{ type: 'Ingreso', account, category: 'Salario', amount, note: 'Sueldo mensual', username: currentUsername }]);
+            const { error } = await _supabase.from('transactions').insert([{ username: currentUsername, type: 'Ingreso', account, category: 'Salario', amount, note: 'Sueldo mensual' }]);
             if(error) {
                 alert("Error: " + error.message);
             } else {
@@ -617,18 +670,39 @@
             personalDebts.forEach(debt => {
                 const remaining = Number(debt.remaining_amount);
                 totalRemainingDebt += remaining;
+                
+                let historyHTML = '';
+                let history = debt.payments_history;
+                if (typeof history === 'string') {
+                    try { history = JSON.parse(history); } catch(e) { history = []; }
+                }
+
+                if (Array.isArray(history) && history.length > 0) {
+                    let items = history.map(h => `<li><span>📅 ${h.date} - ${h.note}</span> <strong>-$${Number(h.amount).toFixed(2)}</strong></li>`).join('');
+                    historyHTML = `
+                        <div class="payment-history">
+                            <strong>Historial de Abonos:</strong>
+                            <ul>${items}</ul>
+                        </div>
+                    `;
+                }
+
                 const div = document.createElement('div');
                 div.className = 'debt-box';
                 div.innerHTML = `
                     <div class="debt-header">
                         <span>👤 ${debt.creditor}</span>
-                        <div style="display: flex; gap: 6px;"><button class="pay-btn" onclick="makeDebtPayment(${debt.id}, ${remaining})">Abonar</button><button class="delete-btn" onclick="deletePersonalDebt(${debt.id})">&times;</button></div>
+                        <div style="display: flex; gap: 6px;">
+                            <button class="pay-btn" onclick="makeDebtPayment(${debt.id}, ${remaining}, ${JSON.stringify(history || []).replace(/"/g, '&quot;')})">Abonar</button>
+                            <button class="delete-btn" onclick="deletePersonalDebt(${debt.id})">&times;</button>
+                        </div>
                     </div>
                     <div class="debt-details">
                         <div>Pendiente: <strong style="color:var(--danger);">$${remaining.toFixed(2)}</strong></div>
                         <div>Original: <strong>$${Number(debt.original_amount).toFixed(2)}</strong></div>
                         <div style="grid-column: span 2;">Motivo: <strong>${debt.note || 'Sin nota'}</strong></div>
                     </div>
+                    ${historyHTML}
                 `;
                 container.appendChild(div);
             });
