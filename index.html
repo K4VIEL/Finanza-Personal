@@ -512,26 +512,27 @@
                 credit_card_name
             };
 
-            if (navigator.onLine) {
+            try {
                 const { error } = await _supabase.from('transactions').insert([txData]);
 
                 if (error) {
-                    alert("Error al guardar: " + error.message);
+                    throw error;
                 } else {
                     document.getElementById('amount').value = '';
                     document.getElementById('note').value = '';
                     fetchData();
                 }
-            } else {
+            } catch (err) {
                 let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
                 offlineQueue.push(txData);
                 localStorage.setItem('offline_tx_queue', JSON.stringify(offlineQueue));
                 
-                alert("📡 Sin conexión: El movimiento se guardó localmente y se subirá automáticamente cuando tengas internet.");
+                alert("📡 Sin conexión detectada: El movimiento se guardó localmente y se subirá al recuperar la red.");
                 document.getElementById('amount').value = '';
                 document.getElementById('note').value = '';
                 
                 updateUI();
+                renderCards();
             }
         }
 
@@ -676,15 +677,12 @@
 
             const txData = { username: currentUsername, type: 'Ingreso', account, category: 'Salario', amount, note: 'Sueldo mensual' };
 
-            if (navigator.onLine) {
+            try {
                 const { error } = await _supabase.from('transactions').insert([txData]);
-                if(error) {
-                    alert("Error: " + error.message);
-                } else {
-                    switchTab('dashboard');
-                    fetchData();
-                }
-            } else {
+                if (error) throw error;
+                switchTab('dashboard');
+                fetchData();
+            } catch (err) {
                 let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
                 offlineQueue.push(txData);
                 localStorage.setItem('offline_tx_queue', JSON.stringify(offlineQueue));
