@@ -287,7 +287,6 @@
             }
 
             if (!navigator.onLine) {
-                // Modo offline: permitir login si el usuario coincide con el guardado localmente en caché
                 const cachedUser = localStorage.getItem('finanzas_cached_user_' + user);
                 if (cachedUser === pass) {
                     currentUsername = user;
@@ -312,7 +311,7 @@
             if (data.password === pass) {
                 currentUsername = user;
                 localStorage.setItem('finanzas_user', user);
-                localStorage.setItem('finanzas_cached_user_' + user, pass); // Guardar caché para offline
+                localStorage.setItem('finanzas_cached_user_' + user, pass);
                 unlockApp();
             } else {
                 errEl.textContent = "Contraseña incorrecta.";
@@ -394,7 +393,6 @@
                 creditCards = ccRes.data || [];
                 personalDebts = debtRes.data || [];
 
-                // Guardar en caché local para cuando esté offline
                 localStorage.setItem('cache_tx', JSON.stringify(transactions));
                 localStorage.setItem('cache_cc', JSON.stringify(creditCards));
                 localStorage.setItem('cache_debt', JSON.stringify(personalDebts));
@@ -533,7 +531,6 @@
                 document.getElementById('amount').value = '';
                 document.getElementById('note').value = '';
                 
-                transactions.unshift(txData);
                 updateUI();
             }
         }
@@ -693,7 +690,6 @@
                 localStorage.setItem('offline_tx_queue', JSON.stringify(offlineQueue));
                 alert("📡 Sin conexión: El sueldo se guardó localmente y se sincronizará al volver la red.");
                 switchTab('dashboard');
-                transactions.unshift(txData);
                 updateUI();
             }
         }
@@ -716,7 +712,7 @@
             let total = 0, cashTotal = 0, bankTotal = 0, cryptoTotal = 0, ccDebtTotal = 0;
 
             let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
-            let combinedTransactions = [...offlineQueue.reverse(), ...transactions];
+            let combinedTransactions = [...offlineQueue.slice().reverse(), ...transactions];
 
             if (combinedTransactions.length === 0) {
                 list.innerHTML = '<div class="empty-state">No hay movimientos</div>';
@@ -774,6 +770,11 @@
             creditCards.forEach(card => {
                 let currentSpent = 0;
                 transactions.forEach(t => {
+                    if(t.account === 'Tarjeta de Crédito' && t.credit_card_name === card.name) currentSpent += Number(t.amount);
+                });
+
+                let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
+                offlineQueue.forEach(t => {
                     if(t.account === 'Tarjeta de Crédito' && t.credit_card_name === card.name) currentSpent += Number(t.amount);
                 });
 
