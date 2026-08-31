@@ -376,7 +376,7 @@
                 checkPaymentAlerts(); 
             } catch (err) {
                 console.error("Error al sincronizar:", err);
-                document.getElementById('syncStatus').textContent = '🟢 En línea (Sin datos aún)';
+                document.getElementById('syncStatus').textContent = '⚠️ Modo Offline';
             }
         }
 
@@ -454,7 +454,7 @@
                 }
             }
 
-            const { error } = await _supabase.from('transactions').insert([{ 
+            const txData = { 
                 username: currentUsername,
                 type, 
                 account, 
@@ -462,16 +462,53 @@
                 amount, 
                 note, 
                 credit_card_name
-            }]);
+            };
 
-            if (error) {
-                alert("Error al guardar: " + error.message);
+            if (navigator.onLine) {
+                const { error } = await _supabase.from('transactions').insert([txData]);
+
+                if (error) {
+                    alert("Error al guardar: " + error.message);
+                } else {
+                    document.getElementById('amount').value = '';
+                    document.getElementById('note').value = '';
+                    fetchData();
+                }
             } else {
+                let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
+                offlineQueue.push(txData);
+                localStorage.setItem('offline_tx_queue', JSON.stringify(offlineQueue));
+                
+                alert("📡 Sin conexión: El movimiento se guardó localmente y se subirá automáticamente cuando tengas internet.");
                 document.getElementById('amount').value = '';
                 document.getElementById('note').value = '';
-                fetchData();
+                
+                // Simular inserción local en pantalla temporalmente
+                transactions.unshift(txData);
+                updateUI();
             }
         }
+
+        window.addEventListener('online', async () => {
+            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
+            if (offlineQueue.length > 0) {
+                document.getElementById('syncStatus').textContent = 'Sincronizando pendientes...';
+                
+                const { error } = await _supabase.from('transactions').insert(offlineQueue);
+                
+                if (!error) {
+                    localStorage.removeItem('offline_tx_queue');
+                    fetchData();
+                    alert("¡Conexión restablecida! Tus datos pendientes se han subido a la nube con éxito.");
+                } else {
+                    document.getElementById('syncStatus').textContent = '⚠️ Error al sincronizar';
+                }
+            }
+        });
+
+        window.addEventListener('offline', () => {
+            document.getElementById('syncStatus').textContent = '⚠️ Sin internet';
+        });
 
         async function saveCreditCard() {
             const name = document.getElementById('ccName').value.trim();
@@ -576,16 +613,32 @@
             const account = document.getElementById('salaryAccount').value;
             if(isNaN(amount) || amount <= 0) { alert("Ingresa un sueldo válido"); return; }
 
-            const { error } = await _supabase.from('transactions').insert([{ username: currentUsername, type: 'Ingreso', account, category: 'Salario', amount, note: 'Sueldo mensual' }]);
-            if(error) {
-                alert("Error: " + error.message);
+            const txData = { username: currentUsername, type: 'Ingreso', account, category: 'Salario', amount, note: 'Sueldo mensual' };
+
+            if (navigator.onLine) {
+                const { error } = await _supabase.from('transactions').insert([txData]);
+                if(error) {
+                    alert("Error: " + error.message);
+                } else {
+                    switchTab('dashboard');
+                    fetchData();
+                }
             } else {
+                let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
+                offlineQueue.push(txData);
+                localStorage.setItem('offline_tx_queue', JSON.stringify(offlineQueue));
+                alert("📡 Sin conexión: El sueldo se guardó localmente y se sincronizará al volver la red.");
                 switchTab('dashboard');
-                fetchData();
+                transactions.unshift(txData);
+                updateUI();
             }
         }
 
         async function deleteTransaction(id) {
+            if (id === undefined || id === null) {
+                alert("Este movimiento local pendiente se sincronizará al reconectar y podrá ser eliminado después.");
+                return;
+            }
             if (confirm("¿Eliminar movimiento?")) {
                 const { error } = await _supabase.from('transactions').delete().eq('id', id);
                 if (!error) fetchData();
@@ -597,10 +650,14 @@
             list.innerHTML = '';
             let total = 0, cashTotal = 0, bankTotal = 0, cryptoTotal = 0, ccDebtTotal = 0;
 
-            if (transactions.length === 0) {
+            // Incluir pendientes offline en la vista visual previa
+            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
+            let combinedTransactions = [...offlineQueue.reverse(), ...transactions];
+
+            if (combinedTransactions.length === 0) {
                 list.innerHTML = '<div class="empty-state">No hay movimientos</div>';
             } else {
-                transactions.forEach((t) => {
+                combinedTransactions.forEach((t) => {
                     const amt = Number(t.amount);
                     if (t.type === 'Ingreso') {
                         total += amt;
@@ -616,11 +673,14 @@
                     }
 
                     const cardTag = t.credit_card_name ? ` <span style="color:var(--warning);">[${t.credit_card_name}]</span>` : '';
+                    const isPending = t.id === undefined;
+                    const pendingTag = isPending ? ` <span style="color:var(--warning); font-size:10px;">(Pendiente 📡)</span>` : '';
+                    
                     const li = document.createElement('li');
                     li.className = 'transaction-item';
                     li.innerHTML = `
                         <div>
-                            <strong>${t.category}</strong>${cardTag} <span style="font-size:11px; color:var(--text-muted);">(${t.account})</span><br>
+                            <strong>${t.category}</strong>${cardTag}${pendingTag} <span style="font-size:11px; color:var(--text-muted);">(${t.account})</span><br>
                             <small style="color:var(--text-muted);">${t.note || 'Sin nota'}</small>
                         </div>
                         <div style="text-align: right; display: flex; align-items: center; gap: 6px;">
@@ -639,7 +699,7 @@
             document.getElementById('bankBalance').textContent = `$${Math.max(0, bankTotal).toFixed(2)}`;
             document.getElementById('cryptoBalance').textContent = `$${Math.max(0, cryptoTotal).toFixed(2)}`;
             document.getElementById('ccDebtBalance').textContent = `$${ccDebtTotal.toFixed(2)}`;
-            document.getElementById('txCount').textContent = `${transactions.length} regs`;
+            document.getElementById('txCount').textContent = `${combinedTransactions.length} regs`;
         }
 
         function renderCards() {
@@ -747,4 +807,4 @@
     </script>
 </body>
 </html>
-
+manifest.json
