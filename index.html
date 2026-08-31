@@ -109,7 +109,7 @@
         <header>
             <h1 id="welcomeUser">💼 Finanzas Pro</h1>
             <div style="display: flex; gap: 8px; align-items: center;">
-                <span id="syncStatus" style="font-size: 11px; color: var(--accent); cursor: pointer;" onclick="forceSync()">🟢 Sincronizar</span>
+                <span id="syncStatus" style="font-size: 11px; color: var(--accent); cursor: pointer;" onclick="forceSync()">🟢 En línea</span>
                 <button onclick="logout()" style="background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger); padding: 4px 8px; font-size: 11px; border-radius: 6px;">Salir</button>
             </div>
         </header>
@@ -397,7 +397,13 @@
                 localStorage.setItem('cache_cc', JSON.stringify(creditCards));
                 localStorage.setItem('cache_debt', JSON.stringify(personalDebts));
                 
-                document.getElementById('syncStatus').textContent = '🟢 Sincronizar';
+                let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
+                if (offlineQueue.length > 0) {
+                    document.getElementById('syncStatus').textContent = `🟡 Pendientes (${offlineQueue.length})`;
+                } else {
+                    document.getElementById('syncStatus').textContent = '🟢 En línea';
+                }
+
                 toggleCardSelector();
                 updateUI();
                 renderCards();
@@ -419,6 +425,10 @@
                 transactions = [];
                 creditCards = [];
                 personalDebts = [];
+            }
+            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
+            if (offlineQueue.length > 0) {
+                document.getElementById('syncStatus').textContent = `🟡 Pendientes (${offlineQueue.length})`;
             }
             toggleCardSelector();
             updateUI();
@@ -497,9 +507,7 @@
                     return;
                 }
                 const months = parseInt(document.getElementById('deferredMonths').value);
-                if (months > 1) {
-                    amount = amount / months;
-                }
+                if (months > 1) amount = amount / months;
             }
 
             const txData = { 
@@ -512,49 +520,67 @@
                 credit_card_name
             };
 
-            try {
-                const { error } = await _supabase.from('transactions').insert([txData]);
+            if (!navigator.onLine) {
+                saveToOfflineQueue(txData);
+                return;
+            }
 
-                if (error) {
-                    throw error;
-                } else {
-                    document.getElementById('amount').value = '';
-                    document.getElementById('note').value = '';
-                    fetchData();
-                }
-            } catch (err) {
-                let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
-                offlineQueue.push(txData);
-                localStorage.setItem('offline_tx_queue', JSON.stringify(offlineQueue));
-                
-                alert("📡 Sin conexión detectada: El movimiento se guardó localmente y se subirá al recuperar la red.");
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+                const { error } = await _supabase.from('transactions').insert([txData]);
+                clearTimeout(timeoutId);
+
+                if (error) throw error;
+
                 document.getElementById('amount').value = '';
                 document.getElementById('note').value = '';
-                
-                updateUI();
-                renderCards();
+                fetchData();
+            } catch (err) {
+                saveToOfflineQueue(txData, "📡 Red lenta o sin conexión: Movimiento guardado en pendientes.");
             }
+        }
+
+        function saveToOfflineQueue(txData, customMsg) {
+            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
+            offlineQueue.push(txData);
+            localStorage.setItem('offline_tx_queue', JSON.stringify(offlineQueue));
+            
+            document.getElementById('amount').value = '';
+            document.getElementById('note').value = '';
+            updateUI();
+            renderCards();
+            document.getElementById('syncStatus').textContent = `🟡 Pendientes (${offlineQueue.length})`;
+            alert(customMsg || "📡 Sin conexión: Movimiento guardado localmente.");
         }
 
         async function forceSync() {
             let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
             if (offlineQueue.length === 0) {
-                alert("No hay movimientos pendientes en la cola local.");
+                document.getElementById('syncStatus').textContent = '🟢 En línea';
+                alert("Todo está sincronizado. La aplicación está en línea.");
                 fetchData();
                 return;
             }
 
             document.getElementById('syncStatus').textContent = 'Sincronizando...';
             
-            const { error } = await _supabase.from('transactions').insert(offlineQueue);
-            
-            if (!error) {
-                localStorage.removeItem('offline_tx_queue');
-                alert("¡Movimientos sincronizados con éxito a la nube!");
-                fetchData();
-            } else {
-                document.getElementById('syncStatus').textContent = '⚠️ Error de red/base';
-                alert("Error al sincronizar con Supabase: " + error.message);
+            try {
+                const { error } = await _supabase.from('transactions').insert(offlineQueue);
+                
+                if (!error) {
+                    localStorage.removeItem('offline_tx_queue');
+                    document.getElementById('syncStatus').textContent = '🟢 En línea';
+                    alert("¡Movimientos sincronizados con éxito a la nube!");
+                    fetchData();
+                } else {
+                    document.getElementById('syncStatus').textContent = '⚠️ Error de red/base';
+                    alert("Error al sincronizar con Supabase: " + error.message);
+                }
+            } catch (err) {
+                document.getElementById('syncStatus').textContent = '⚠️ Error al sincronizar';
+                alert("Error de red al intentar sincronizar.");
             }
         }
 
@@ -567,6 +593,7 @@
                 
                 if (!error) {
                     localStorage.removeItem('offline_tx_queue');
+                    document.getElementById('syncStatus').textContent = '🟢 En línea';
                     fetchData();
                     alert("¡Conexión restablecida! Tus datos pendientes se han subido a la nube con éxito.");
                 } else {
@@ -699,18 +726,25 @@
 
             const txData = { username: currentUsername, type: 'Ingreso', account, category: 'Salario', amount, note: 'Sueldo mensual' };
 
+            if (!navigator.onLine) {
+                saveToOfflineQueue(txData, "📡 Sin conexión: Sueldo guardado localmente.");
+                switchTab('dashboard');
+                return;
+            }
+
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+
                 const { error } = await _supabase.from('transactions').insert([txData]);
+                clearTimeout(timeoutId);
+
                 if (error) throw error;
                 switchTab('dashboard');
                 fetchData();
             } catch (err) {
-                let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
-                offlineQueue.push(txData);
-                localStorage.setItem('offline_tx_queue', JSON.stringify(offlineQueue));
-                alert("📡 Sin conexión: El sueldo se guardó localmente y se sincronizará al volver la red.");
+                saveToOfflineQueue(txData, "📡 Red lenta o sin conexión: Sueldo guardado en pendientes.");
                 switchTab('dashboard');
-                updateUI();
             }
         }
 
