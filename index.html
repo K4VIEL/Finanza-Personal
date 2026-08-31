@@ -109,7 +109,7 @@
         <header>
             <h1 id="welcomeUser">💼 Finanzas Pro</h1>
             <div style="display: flex; gap: 8px; align-items: center;">
-                <span id="syncStatus" style="font-size: 11px; color: var(--accent);">Sincronizando...</span>
+                <span id="syncStatus" style="font-size: 11px; color: var(--accent); cursor: pointer;" onclick="forceSync()">🟢 Sincronizar</span>
                 <button onclick="logout()" style="background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger); padding: 4px 8px; font-size: 11px; border-radius: 6px;">Salir</button>
             </div>
         </header>
@@ -397,7 +397,7 @@
                 localStorage.setItem('cache_cc', JSON.stringify(creditCards));
                 localStorage.setItem('cache_debt', JSON.stringify(personalDebts));
                 
-                document.getElementById('syncStatus').textContent = '🟢 En línea';
+                document.getElementById('syncStatus').textContent = '🟢 Sincronizar';
                 toggleCardSelector();
                 updateUI();
                 renderCards();
@@ -533,6 +533,28 @@
                 
                 updateUI();
                 renderCards();
+            }
+        }
+
+        async function forceSync() {
+            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
+            if (offlineQueue.length === 0) {
+                alert("No hay movimientos pendientes en la cola local.");
+                fetchData();
+                return;
+            }
+
+            document.getElementById('syncStatus').textContent = 'Sincronizando...';
+            
+            const { error } = await _supabase.from('transactions').insert(offlineQueue);
+            
+            if (!error) {
+                localStorage.removeItem('offline_tx_queue');
+                alert("¡Movimientos sincronizados con éxito a la nube!");
+                fetchData();
+            } else {
+                document.getElementById('syncStatus').textContent = '⚠️ Error de red/base';
+                alert("Error al sincronizar con Supabase: " + error.message);
             }
         }
 
