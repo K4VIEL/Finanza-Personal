@@ -418,10 +418,10 @@
 
             try {
                 const [txRes, ccRes, debtRes, goalRes] = await Promise.all([
-                    _supabase.from('transactions').select('*').order('created_at', { ascending: false }),
-                    _supabase.from('credit_cards').select('*'),
-                    _supabase.from('personal_debts').select('*').order('created_at', { ascending: false }),
-                    _supabase.from('savings_goals').select('*').order('created_at', { ascending: false })
+                    _supabase.from('transactions').select('*').eq('username', currentUsername).order('created_at', { ascending: false }),
+                    _supabase.from('credit_cards').select('*').eq('username', currentUsername),
+                    _supabase.from('personal_debts').select('*').eq('username', currentUsername).order('created_at', { ascending: false }),
+                    _supabase.from('savings_goals').select('*').eq('username', currentUsername).order('created_at', { ascending: false })
                 ]);
 
                 transactions = txRes.data || [];
@@ -429,12 +429,12 @@
                 personalDebts = debtRes.data || [];
                 savingsGoals = goalRes.data || [];
 
-                localStorage.setItem('cache_tx', JSON.stringify(transactions));
-                localStorage.setItem('cache_cc', JSON.stringify(creditCards));
-                localStorage.setItem('cache_debt', JSON.stringify(personalDebts));
-                localStorage.setItem('cache_goal', JSON.stringify(savingsGoals));
+                localStorage.setItem('cache_tx_' + currentUsername, JSON.stringify(transactions));
+                localStorage.setItem('cache_cc_' + currentUsername, JSON.stringify(creditCards));
+                localStorage.setItem('cache_debt_' + currentUsername, JSON.stringify(personalDebts));
+                localStorage.setItem('cache_goal_' + currentUsername, JSON.stringify(savingsGoals));
                 
-                let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
+                let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue_' + currentUsername) || '[]');
                 if (offlineQueue.length > 0) {
                     document.getElementById('syncStatus').textContent = `🟡 Pendientes (${offlineQueue.length})`;
                 } else {
@@ -456,17 +456,17 @@
 
         function loadOfflineCache() {
             try {
-                transactions = JSON.parse(localStorage.getItem('cache_tx') || '[]');
-                creditCards = JSON.parse(localStorage.getItem('cache_cc') || '[]');
-                personalDebts = JSON.parse(localStorage.getItem('cache_debt') || '[]');
-                savingsGoals = JSON.parse(localStorage.getItem('cache_goal') || '[]');
+                transactions = JSON.parse(localStorage.getItem('cache_tx_' + currentUsername) || '[]');
+                creditCards = JSON.parse(localStorage.getItem('cache_cc_' + currentUsername) || '[]');
+                personalDebts = JSON.parse(localStorage.getItem('cache_debt_' + currentUsername) || '[]');
+                savingsGoals = JSON.parse(localStorage.getItem('cache_goal_' + currentUsername) || '[]');
             } catch (e) {
                 transactions = [];
                 creditCards = [];
                 personalDebts = [];
                 savingsGoals = [];
             }
-            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
+            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue_' + currentUsername) || '[]');
             if (offlineQueue.length > 0) {
                 document.getElementById('syncStatus').textContent = `🟡 Pendientes (${offlineQueue.length})`;
             }
@@ -584,9 +584,9 @@
         }
 
         function saveToOfflineQueue(txData, customMsg) {
-            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
+            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue_' + currentUsername) || '[]');
             offlineQueue.push(txData);
-            localStorage.setItem('offline_tx_queue', JSON.stringify(offlineQueue));
+            localStorage.setItem('offline_tx_queue_' + currentUsername, JSON.stringify(offlineQueue));
             
             document.getElementById('amount').value = '';
             document.getElementById('note').value = '';
@@ -597,7 +597,7 @@
         }
 
         async function forceSync() {
-            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
+            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue_' + currentUsername) || '[]');
             if (offlineQueue.length === 0) {
                 document.getElementById('syncStatus').textContent = '🟢 En línea';
                 alert("Todo está sincronizado. La aplicación está en línea.");
@@ -611,7 +611,7 @@
                 const { error } = await _supabase.from('transactions').insert(offlineQueue);
                 
                 if (!error) {
-                    localStorage.removeItem('offline_tx_queue');
+                    localStorage.removeItem('offline_tx_queue_' + currentUsername);
                     document.getElementById('syncStatus').textContent = '🟢 En línea';
                     alert("¡Movimientos sincronizados con éxito a la nube!");
                     fetchData();
@@ -626,14 +626,15 @@
         }
 
         window.addEventListener('online', async () => {
-            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
+            if (!currentUsername) return;
+            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue_' + currentUsername) || '[]');
             if (offlineQueue.length > 0) {
                 document.getElementById('syncStatus').textContent = 'Sincronizando pendientes...';
                 
                 const { error } = await _supabase.from('transactions').insert(offlineQueue);
                 
                 if (!error) {
-                    localStorage.removeItem('offline_tx_queue');
+                    localStorage.removeItem('offline_tx_queue_' + currentUsername);
                     document.getElementById('syncStatus').textContent = '🟢 En línea';
                     fetchData();
                     alert("¡Conexión restablecida! Tus datos pendientes se han subido a la nube con éxito.");
@@ -850,7 +851,7 @@
             list.innerHTML = '';
             let total = 0, cashTotal = 0, bankTotal = 0, cryptoTotal = 0, ccDebtTotal = 0;
 
-            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
+            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue_' + currentUsername) || '[]');
             let combinedTransactions = [...offlineQueue.slice().reverse(), ...transactions];
 
             if (combinedTransactions.length === 0) {
@@ -908,7 +909,7 @@
             if (!ctx) return;
 
             let categoryTotals = {};
-            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
+            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue_' + currentUsername) || '[]');
             let combined = [...offlineQueue, ...transactions];
 
             combined.forEach(t => {
@@ -954,7 +955,7 @@
                     if(t.account === 'Tarjeta de Crédito' && t.credit_card_name === card.name) currentSpent += Number(t.amount);
                 });
 
-                let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue') || '[]');
+                let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue_' + currentUsername) || '[]');
                 offlineQueue.forEach(t => {
                     if(t.account === 'Tarjeta de Crédito' && t.credit_card_name === card.name) currentSpent += Number(t.amount);
                 });
