@@ -32,7 +32,7 @@
         h1 { font-size: 18px; color: var(--text); }
         
         .tabs { display: flex; background: var(--card-bg); border-radius: 10px; padding: 4px; margin-bottom: 15px; border: 1px solid var(--border); overflow-x: auto; }
-        .tab { flex: 1; text-align: center; padding: 8px 4px; font-size: 11px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: 8px; transition: 0.2s; white-space: nowrap; }
+        .tab { flex: 1; text-align: center; padding: 8px 4px; font-size: 10px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: 8px; transition: 0.2s; white-space: nowrap; }
         .tab.active { background: var(--accent); color: white; }
 
         .card { background: var(--card-bg); padding: 16px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); margin-bottom: 15px; border: 1px solid var(--border); }
@@ -57,6 +57,7 @@
         label { display: block; margin-bottom: 3px; font-weight: 600; font-size: 12px; color: var(--text-muted); }
         select, input { width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; outline: none; }
         select:focus, input:focus { border-color: var(--accent); }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
         
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
         button { padding: 12px; border: none; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer; color: white; transition: opacity 0.2s; }
@@ -72,10 +73,12 @@
         .delete-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 4px; }
         .delete-btn:hover { color: var(--danger); }
         .pay-btn { background: rgba(16, 185, 129, 0.15); border: 1px solid var(--accent); color: var(--accent); border-radius: 6px; padding: 4px 8px; font-size: 11px; font-weight: bold; cursor: pointer; }
+        .add-btn { background: rgba(59, 130, 246, 0.15); border: 1px solid var(--info); color: var(--info); border-radius: 6px; padding: 4px 8px; font-size: 11px; font-weight: bold; cursor: pointer; }
         
-        .credit-card-box, .debt-box, .user-box, .goal-box { background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
-        .cc-header, .debt-header, .user-header, .goal-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 6px; color: var(--warning); }
-        .cc-details, .debt-details, .user-details, .goal-details { display: grid; grid-template-columns: 1fr 1fr; font-size: 11px; color: var(--text-muted); gap: 4px; }
+        .credit-card-box, .debt-box, .receivable-box, .user-box, .goal-box { background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+        .cc-header, .debt-header, .receivable-header, .user-header, .goal-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 6px; color: var(--warning); }
+        .receivable-header { color: var(--accent); }
+        .cc-details, .debt-details, .receivable-details, .user-details, .goal-details { display: grid; grid-template-columns: 1fr 1fr; font-size: 11px; color: var(--text-muted); gap: 4px; }
         
         .view-section { display: none; }
         .view-section.active { display: block; }
@@ -123,6 +126,7 @@
             <div class="tab active" onclick="switchTab('dashboard')">Panel</div>
             <div class="tab" onclick="switchTab('cards')">Tarjetas</div>
             <div class="tab" onclick="switchTab('debts')">Deudas</div>
+            <div class="tab" onclick="switchTab('receivables')">Cobros</div>
             <div class="tab" onclick="switchTab('goals')">Metas</div>
             <div class="tab" onclick="switchTab('salary')">Sueldo</div>
             <div class="tab" id="adminTabBtn" onclick="switchTab('admin')" style="display:none; color: var(--warning);">Admin ⚙️</div>
@@ -226,6 +230,7 @@
                 <div class="section-title"><span>📝 Registrar Deuda Personal</span></div>
                 <div class="form-group"><label>Acreedor (¿A quién le debes?)</label><input type="text" id="debtCreditor" placeholder="Ej. Juan Pérez"></div>
                 <div class="form-group"><label>Monto Total Adeudado ($)</label><input type="number" id="debtAmount" placeholder="150.00" step="0.01"></div>
+                <div class="form-group"><label>Fecha Límite de Pago</label><input type="date" id="debtDueDate"></div>
                 <div class="form-group"><label>Nota / Motivo</label><input type="text" id="debtNote" placeholder="Ej. Préstamo"></div>
                 <button class="btn-primary btn-expense" onclick="savePersonalDebt()">Guardar Deuda 📉</button>
             </div>
@@ -235,7 +240,23 @@
             </div>
         </div>
 
-        <!-- VISTA 4: METAS DE AHORRO -->
+        <!-- VISTA 4: COBROS -->
+        <div id="view-receivables" class="view-section">
+            <div class="card">
+                <div class="section-title"><span>💰 Registrar Dinero Prestado (Por Cobrar)</span></div>
+                <div class="form-group"><label>Deudor (¿Quién te debe?)</label><input type="text" id="receivableDebtor" placeholder="Ej. Carlos Mendoza"></div>
+                <div class="form-group"><label>Monto Prestado ($)</label><input type="number" id="receivableAmount" placeholder="50.00" step="0.01"></div>
+                <div class="form-group"><label>Fecha Límite de Cobro</label><input type="date" id="receivableDueDate"></div>
+                <div class="form-group"><label>Nota / Motivo</label><input type="text" id="receivableNote" placeholder="Ej. Almuerzo o préstamo rápido"></div>
+                <button class="btn-primary btn-income" onclick="saveReceivableDebt()">Registrar Préstamo 📈</button>
+            </div>
+            <div class="card">
+                <div class="section-title"><span>Cuentas por Cobrar</span><strong id="totalReceivableAmount" style="color: var(--accent); font-size: 13px;">$0.00</strong></div>
+                <div id="receivablesList"><div class="empty-state">No hay cobros pendientes</div></div>
+            </div>
+        </div>
+
+        <!-- VISTA 5: METAS DE AHORRO -->
         <div id="view-goals" class="view-section">
             <div class="card">
                 <div class="section-title"><span>🎯 Registrar Meta de Ahorro</span></div>
@@ -249,7 +270,7 @@
             </div>
         </div>
 
-        <!-- VISTA 5: SUELDO -->
+        <!-- VISTA 6: SUELDO -->
         <div id="view-salary" class="view-section">
             <div class="card">
                 <div class="section-title"><span>💰 Configurar Sueldo Mensual</span></div>
@@ -266,7 +287,7 @@
             </div>
         </div>
 
-        <!-- VISTA 6: ADMIN -->
+        <!-- VISTA 7: ADMIN -->
         <div id="view-admin" class="view-section">
             <div class="card">
                 <div class="section-title"><span>⚙️ Crear o Modificar Usuario</span></div>
@@ -292,6 +313,7 @@
         let transactions = [];
         let creditCards = [];
         let personalDebts = [];
+        let receivables = [];
         let savingsGoals = [];
         let expenseChartInstance = null;
 
@@ -371,7 +393,7 @@
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
             
-            const tabsMap = { dashboard: 0, cards: 1, debts: 2, goals: 3, salary: 4, admin: 5 };
+            const tabsMap = { dashboard: 0, cards: 1, debts: 2, receivables: 3, goals: 4, salary: 5, admin: 6 };
             document.querySelectorAll('.tab')[tabsMap[tabName]].classList.add('active');
             document.getElementById(`view-${tabName}`).classList.add('active');
             
@@ -417,21 +439,24 @@
             }
 
             try {
-                const [txRes, ccRes, debtRes, goalRes] = await Promise.all([
+                const [txRes, ccRes, debtRes, recRes, goalRes] = await Promise.all([
                     _supabase.from('transactions').select('*').eq('username', currentUsername).order('created_at', { ascending: false }),
                     _supabase.from('credit_cards').select('*').eq('username', currentUsername),
                     _supabase.from('personal_debts').select('*').eq('username', currentUsername).order('created_at', { ascending: false }),
+                    _supabase.from('receivables').select('*').eq('username', currentUsername).order('created_at', { ascending: false }),
                     _supabase.from('savings_goals').select('*').eq('username', currentUsername).order('created_at', { ascending: false })
                 ]);
 
                 transactions = txRes.data || [];
                 creditCards = ccRes.data || [];
                 personalDebts = debtRes.data || [];
+                receivables = recRes.data || [];
                 savingsGoals = goalRes.data || [];
 
                 localStorage.setItem('cache_tx_' + currentUsername, JSON.stringify(transactions));
                 localStorage.setItem('cache_cc_' + currentUsername, JSON.stringify(creditCards));
                 localStorage.setItem('cache_debt_' + currentUsername, JSON.stringify(personalDebts));
+                localStorage.setItem('cache_rec_' + currentUsername, JSON.stringify(receivables));
                 localStorage.setItem('cache_goal_' + currentUsername, JSON.stringify(savingsGoals));
                 
                 let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue_' + currentUsername) || '[]');
@@ -445,6 +470,7 @@
                 updateUI();
                 renderCards();
                 renderDebts();
+                renderReceivables();
                 renderGoals();
                 checkPaymentAlerts(); 
             } catch (err) {
@@ -459,11 +485,13 @@
                 transactions = JSON.parse(localStorage.getItem('cache_tx_' + currentUsername) || '[]');
                 creditCards = JSON.parse(localStorage.getItem('cache_cc_' + currentUsername) || '[]');
                 personalDebts = JSON.parse(localStorage.getItem('cache_debt_' + currentUsername) || '[]');
+                receivables = JSON.parse(localStorage.getItem('cache_rec_' + currentUsername) || '[]');
                 savingsGoals = JSON.parse(localStorage.getItem('cache_goal_' + currentUsername) || '[]');
             } catch (e) {
                 transactions = [];
                 creditCards = [];
                 personalDebts = [];
+                receivables = [];
                 savingsGoals = [];
             }
             let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue_' + currentUsername) || '[]');
@@ -474,6 +502,7 @@
             updateUI();
             renderCards();
             renderDebts();
+            renderReceivables();
             renderGoals();
             checkPaymentAlerts();
         }
@@ -686,6 +715,7 @@
         async function savePersonalDebt() {
             const creditor = document.getElementById('debtCreditor').value.trim();
             const amount = parseFloat(document.getElementById('debtAmount').value);
+            const due_date = document.getElementById('debtDueDate').value || null;
             const note = document.getElementById('debtNote').value;
 
             if(!creditor || isNaN(amount)) { alert("Indica acreedor y monto."); return; }
@@ -700,6 +730,7 @@
                 creditor, 
                 original_amount: amount, 
                 remaining_amount: amount, 
+                due_date,
                 note,
                 payments_history: [] 
             }]);
@@ -709,12 +740,13 @@
             } else {
                 document.getElementById('debtCreditor').value = '';
                 document.getElementById('debtAmount').value = '';
+                document.getElementById('debtDueDate').value = '';
                 document.getElementById('debtNote').value = '';
                 fetchData();
             }
         }
 
-        async function makeDebtPayment(id, currentRemaining, currentHistory) {
+        async function makeDebtPayment(id, currentRemaining, currentHistory, currentOriginal) {
             if(!navigator.onLine) { alert("Acción no disponible offline."); return; }
             const paymentInput = prompt(`Abonar a deuda (Pendiente: $${currentRemaining.toFixed(2)})`);
             if (paymentInput === null) return;
@@ -729,6 +761,7 @@
 
             history.push({
                 date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                type: 'abono',
                 amount: paymentAmount,
                 note: noteInput || 'Abono'
             });
@@ -753,10 +786,160 @@
             }
         }
 
+        async function increaseDebt(id, currentRemaining, currentOriginal, currentHistory) {
+            if(!navigator.onLine) { alert("Acción no disponible offline."); return; }
+            const increaseInput = prompt(`¿Cuánto más te prestó esta persona? (Monto actual pendiente: $${currentRemaining.toFixed(2)})`);
+            if (increaseInput === null) return;
+            const increaseAmount = parseFloat(increaseInput);
+            if (isNaN(increaseAmount) || increaseAmount <= 0) return;
+
+            const noteInput = prompt("Nota o motivo de este nuevo préstamo (opcional):", "Préstamo adicional");
+            const newRemaining = currentRemaining + increaseAmount;
+            const newOriginal = Number(currentOriginal) + increaseAmount;
+
+            let history = currentHistory || [];
+            if (!Array.isArray(history)) history = [];
+
+            history.push({
+                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                type: 'aumento',
+                amount: increaseAmount,
+                note: noteInput || 'Préstamo adicional'
+            });
+
+            const { error } = await _supabase.from('personal_debts').update({ 
+                original_amount: newOriginal,
+                remaining_amount: newRemaining,
+                payments_history: history
+            }).eq('id', id);
+
+            if (error) {
+                alert("Error al actualizar la deuda: " + error.message);
+            } else {
+                fetchData();
+            }
+        }
+
         async function deletePersonalDebt(id) {
             if(!navigator.onLine) { alert("Acción no disponible offline."); return; }
             if(confirm("¿Eliminar deuda?")) {
                 const { error } = await _supabase.from('personal_debts').delete().eq('id', id);
+                if(!error) fetchData();
+            }
+        }
+
+        async function saveReceivableDebt() {
+            const debtor = document.getElementById('receivableDebtor').value.trim();
+            const amount = parseFloat(document.getElementById('receivableAmount').value);
+            const due_date = document.getElementById('receivableDueDate').value || null;
+            const note = document.getElementById('receivableNote').value;
+
+            if(!debtor || isNaN(amount) || amount <= 0) { alert("Indica el nombre del deudor y un monto válido."); return; }
+
+            if (!navigator.onLine) {
+                alert("No se puede registrar cobros nuevos sin conexión a internet.");
+                return;
+            }
+
+            const { error } = await _supabase.from('receivables').insert([{ 
+                username: currentUsername, 
+                debtor, 
+                original_amount: amount, 
+                remaining_amount: amount, 
+                due_date,
+                note,
+                payments_history: [] 
+            }]);
+            
+            if(error) {
+                alert("Error: " + error.message);
+            } else {
+                document.getElementById('receivableDebtor').value = '';
+                document.getElementById('receivableAmount').value = '';
+                document.getElementById('receivableDueDate').value = '';
+                document.getElementById('receivableNote').value = '';
+                fetchData();
+            }
+        }
+
+        async function makeReceivablePayment(id, currentRemaining, currentHistory) {
+            if(!navigator.onLine) { alert("Acción no disponible offline."); return; }
+            const paymentInput = prompt(`Registrar abono recibido (Pendiente de cobro: $${currentRemaining.toFixed(2)})`);
+            if (paymentInput === null) return;
+            const paymentAmount = parseFloat(paymentInput);
+            if (isNaN(paymentAmount) || paymentAmount <= 0) return;
+
+            const noteInput = prompt("Nota o descripción para este cobro (opcional):", "Abono recibido");
+            const newRemaining = currentRemaining - paymentAmount;
+
+            let history = currentHistory || [];
+            if (!Array.isArray(history)) history = [];
+
+            history.push({
+                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                type: 'abono',
+                amount: paymentAmount,
+                note: noteInput || 'Abono recibido'
+            });
+
+            if (newRemaining <= 0) {
+                if (confirm("¿Este préstamo ha sido pagado por completo? Se eliminará de la lista de pendientes.")) {
+                    await _supabase.from('receivables').delete().eq('id', id);
+                    fetchData();
+                    return;
+                }
+            }
+
+            const { error } = await _supabase.from('receivables').update({ 
+                remaining_amount: Math.max(0, newRemaining),
+                payments_history: history
+            }).eq('id', id);
+
+            if (error) {
+                alert("Error al registrar abono: " + error.message);
+            } else {
+                fetchData();
+            }
+        }
+
+        async function increaseReceivable(id, currentRemaining, currentOriginal, currentHistory) {
+            if(!navigator.onLine) { alert("Acción no disponible offline."); return; }
+            const increaseInput = prompt(`¿Cuánto más le prestaste a esta persona? (Pendiente actual: $${currentRemaining.toFixed(2)})`);
+            if (increaseInput === null) return;
+            const increaseAmount = parseFloat(increaseInput);
+            if (isNaN(increaseAmount) || increaseAmount <= 0) return;
+
+            const noteInput = prompt("Nota o motivo de este nuevo préstamo (opcional):", "Préstamo adicional");
+            const newRemaining = currentRemaining + increaseAmount;
+            const newOriginal = Number(currentOriginal) + increaseAmount;
+
+            let history = currentHistory || [];
+            if (!Array.isArray(history)) history = [];
+
+            history.push({
+                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                type: 'aumento',
+                amount: increaseAmount,
+                note: noteInput || 'Préstamo adicional'
+            });
+
+            const { error } = await _supabase.from('receivables').update({ 
+                original_amount: newOriginal,
+                remaining_amount: newRemaining,
+                payments_history: history
+            }).eq('id', id);
+
+            if (error) {
+                alert("Error al actualizar el cobro: " + error.message);
+            } else {
+                fetchData();
+            }
+        }
+
+        async function deleteReceivable(id) {
+            if(!navigator.onLine) { alert("Acción no disponible offline."); return; }
+            if(confirm("¿Eliminar este registro de cobro?")) {
+                const { error } = await _supabase.from('receivables').delete().eq('id', id);
                 if(!error) fetchData();
             }
         }
@@ -983,8 +1166,11 @@
 
             personalDebts.forEach(debt => {
                 const remaining = Number(debt.remaining_amount);
+                const original = Number(debt.original_amount);
                 totalRemainingDebt += remaining;
                 
+                let dueDateHTML = debt.due_date ? `<div>Vence: <strong style="color:var(--warning);">${debt.due_date}</strong></div>` : '<div>Vence: <strong>Sin fecha</strong></div>';
+
                 let historyHTML = '';
                 let history = debt.payments_history;
                 if (typeof history === 'string') {
@@ -992,10 +1178,17 @@
                 }
 
                 if (Array.isArray(history) && history.length > 0) {
-                    let items = history.map(h => `<li><span>📅 ${h.date} - ${h.note}</span> <strong>-$${Number(h.amount).toFixed(2)}</strong></li>`).join('');
+                    let items = history.map(h => {
+                        const isAumento = h.type === 'aumento';
+                        const sign = isAumento ? '+' : '-';
+                        const color = isAumento ? 'var(--warning)' : 'var(--danger)';
+                        const label = isAumento ? 'Préstamo Extra' : 'Abono';
+                        return `<li><span>📅 ${h.date} - ${h.note} (${label})</span> <strong style="color:${color};">${sign}$${Number(h.amount).toFixed(2)}</strong></li>`;
+                    }).join('');
+                    
                     historyHTML = `
                         <div class="payment-history">
-                            <strong>Historial de Abonos:</strong>
+                            <strong>Historial de Movimientos:</strong>
                             <ul>${items}</ul>
                         </div>
                     `;
@@ -1006,21 +1199,83 @@
                 div.innerHTML = `
                     <div class="debt-header">
                         <span>👤 ${debt.creditor}</span>
-                        <div style="display: flex; gap: 6px;">
-                            <button class="pay-btn" onclick="makeDebtPayment(${debt.id}, ${remaining}, ${JSON.stringify(history || []).replace(/"/g, '&quot;')})">Abonar</button>
+                        <div style="display: flex; gap: 4px;">
+                            <button class="add-btn" onclick="increaseDebt(${debt.id}, ${remaining}, ${original}, ${JSON.stringify(history || []).replace(/"/g, '&quot;')})">Prestar +</button>
+                            <button class="pay-btn" onclick="makeDebtPayment(${debt.id}, ${remaining}, ${JSON.stringify(history || []).replace(/"/g, '&quot;')}, ${original})">Abonar</button>
                             <button class="delete-btn" onclick="deletePersonalDebt(${debt.id})">&times;</button>
                         </div>
                     </div>
                     <div class="debt-details">
                         <div>Pendiente: <strong style="color:var(--danger);">$${remaining.toFixed(2)}</strong></div>
-                        <div>Original: <strong>$${Number(debt.original_amount).toFixed(2)}</strong></div>
-                        <div style="grid-column: span 2;">Motivo: <strong>${debt.note || 'Sin nota'}</strong></div>
+                        <div>Original: <strong>$${original.toFixed(2)}</strong></div>
+                        ${dueDateHTML}
+                        <div>Motivo: <strong>${debt.note || 'Sin nota'}</strong></div>
                     </div>
                     ${historyHTML}
                 `;
                 container.appendChild(div);
             });
             document.getElementById('totalDebtAmount').textContent = `$${totalRemainingDebt.toFixed(2)}`;
+        }
+
+        function renderReceivables() {
+            const container = document.getElementById('receivablesList');
+            container.innerHTML = '';
+            let totalRemainingReceivable = 0;
+            if(receivables.length === 0) { container.innerHTML = '<div class="empty-state">No hay cobros pendientes</div>'; document.getElementById('totalReceivableAmount').textContent = '$0.00'; return; }
+
+            receivables.forEach(rec => {
+                const remaining = Number(rec.remaining_amount);
+                const original = Number(rec.original_amount);
+                totalRemainingReceivable += remaining;
+                
+                let dueDateHTML = rec.due_date ? `<div>Cobro máx: <strong style="color:var(--accent);">${rec.due_date}</strong></div>` : '<div>Cobro máx: <strong>Sin fecha</strong></div>';
+
+                let historyHTML = '';
+                let history = rec.payments_history;
+                if (typeof history === 'string') {
+                    try { history = JSON.parse(history); } catch(e) { history = []; }
+                }
+
+                if (Array.isArray(history) && history.length > 0) {
+                    let items = history.map(h => {
+                        const isAumento = h.type === 'aumento';
+                        const sign = isAumento ? '+' : '-';
+                        const color = isAumento ? 'var(--info)' : 'var(--accent)';
+                        const label = isAumento ? 'Préstamo Extra' : 'Abono Recibido';
+                        return `<li><span>📅 ${h.date} - ${h.note} (${label})</span> <strong style="color:${color};">${sign}$${Number(h.amount).toFixed(2)}</strong></li>`;
+                    }).join('');
+
+                    historyHTML = `
+                        <div class="payment-history">
+                            <strong>Historial de Movimientos:</strong>
+                            <ul>${items}</ul>
+                        </div>
+                    `;
+                }
+
+                const div = document.createElement('div');
+                div.className = 'receivable-box';
+                div.innerHTML = `
+                    <div class="receivable-header">
+                        <span>👤 ${rec.debtor}</span>
+                        <div style="display: flex; gap: 4px;">
+                            <button class="add-btn" onclick="increaseReceivable(${rec.id}, ${remaining}, ${original}, ${JSON.stringify(history || []).replace(/"/g, '&quot;')})">Prestar +</button>
+                            <button class="pay-btn" onclick="makeReceivablePayment(${rec.id}, ${remaining}, ${JSON.stringify(history || []).replace(/"/g, '&quot;')})">Cobrar</button>
+                            <button class="delete-btn" onclick="deleteReceivable(${rec.id})">&times;</button>
+                        </div>
+                    </div>
+                    <div class="receivable-details">
+                        <div>Por cobrar: <strong style="color:var(--accent);">$${remaining.toFixed(2)}</strong></div>
+                        <div>Original: <strong>$${original.toFixed(2)}</strong></div>
+                        ${dueDateHTML}
+                        <div>Motivo: <strong>${rec.note || 'Sin nota'}</strong></div>
+                    </div>
+                    ${historyHTML}
+                `;
+                container.appendChild(div);
+            });
+            document.getElementById('totalReceivableAmount').textContent = `$${totalRemainingReceivable.toFixed(2)}`;
         }
 
         function renderGoals() {
@@ -1064,27 +1319,85 @@
 
         function checkPaymentAlerts() {
             const container = document.getElementById('alertContainer');
-            container.innerHTML = '';
-            if (creditCards.length === 0) return;
-            const today = new Date().getDate(); 
+            // Mantenemos las alertas de tarjetas y agregamos las de deudas/cobros
+            let existingContent = container.innerHTML; 
+            
+            const todayStr = new Date().toISOString().split('T')[0];
+            const todayDate = new Date(todayStr);
 
-            creditCards.forEach(card => {
-                const daysUntilPay = card.pay_day - today;
-                let cardSpent = 0;
-                transactions.forEach(t => {
-                    if(t.account === 'Tarjeta de Crédito' && t.credit_card_name === card.name) cardSpent += Number(t.amount);
+            // 1. Alertas de Tarjetas de Crédito
+            if (creditCards.length > 0) {
+                const todayDay = new Date().getDate();
+                creditCards.forEach(card => {
+                    const daysUntilPay = card.pay_day - todayDay;
+                    let cardSpent = 0;
+                    transactions.forEach(t => {
+                        if(t.account === 'Tarjeta de Crédito' && t.credit_card_name === card.name) cardSpent += Number(t.amount);
+                    });
+
+                    if (cardSpent > 0) {
+                        if (daysUntilPay === 0) {
+                            const alertDiv = document.createElement('div');
+                            alertDiv.className = 'alert-banner danger';
+                            alertDiv.innerHTML = `<div class="alert-content">⚠️ <strong>¡DÍA DE PAGO T.CRÉDITO HOY!</strong> Tu tarjeta <strong>"${card.name}"</strong> vence hoy. Debes <strong>$${cardSpent.toFixed(2)}</strong>.</div><button class="alert-close" onclick="this.parentElement.remove()">&times;</button>`;
+                            container.appendChild(alertDiv);
+                        } else if (daysUntilPay > 0 && daysUntilPay <= 3) {
+                            const alertDiv = document.createElement('div');
+                            alertDiv.className = 'alert-banner';
+                            alertDiv.innerHTML = `<div class="alert-content">📢 <strong>Aviso T.Crédito:</strong> Faltan ${daysUntilPay} día(s) para pagar <strong>"${card.name}"</strong>. Debes <strong>$${cardSpent.toFixed(2)}</strong>.</div><button class="alert-close" onclick="this.parentElement.remove()">&times;</button>`;
+                            container.appendChild(alertDiv);
+                        }
+                    }
                 });
+            }
 
-                if (cardSpent > 0) {
-                    if (daysUntilPay === 0) {
+            // 2. Alertas de Deudas Personales (Vencimientos)
+            personalDebts.forEach(debt => {
+                if (debt.due_date && Number(debt.remaining_amount) > 0) {
+                    const dueDate = new Date(debt.due_date);
+                    const diffTime = dueDate - todayDate;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (diffDays < 0) {
                         const alertDiv = document.createElement('div');
                         alertDiv.className = 'alert-banner danger';
-                        alertDiv.innerHTML = `<div class="alert-content">⚠️ <strong>¡DÍA DE PAGO HOY!</strong> Tu tarjeta <strong>"${card.name}"</strong> vence hoy (Día ${card.pay_day}). Debes <strong>$${cardSpent.toFixed(2)}</strong>.</div><button class="alert-close" onclick="this.parentElement.remove()">&times;</button>`;
+                        alertDiv.innerHTML = `<div class="alert-content">🚨 <strong>DEUDA VENCIDA:</strong> Tu pago a <strong>"${debt.creditor}"</strong> venció el ${debt.due_date}. Debes <strong>$${Number(debt.remaining_amount).toFixed(2)}</strong>.</div><button class="alert-close" onclick="this.parentElement.remove()">&times;</button>`;
                         container.appendChild(alertDiv);
-                    } else if (daysUntilPay > 0 && daysUntilPay <= 3) {
+                    } else if (diffDays === 0) {
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert-banner danger';
+                        alertDiv.innerHTML = `<div class="alert-content">⚠️ <strong>¡DEUDA VENCE HOY!</strong> Debes pagarle a <strong>"${debt.creditor}"</strong> hoy ($${Number(debt.remaining_amount).toFixed(2)}).</div><button class="alert-close" onclick="this.parentElement.remove()">&times;</button>`;
+                        container.appendChild(alertDiv);
+                    } else if (diffDays > 0 && diffDays <= 3) {
                         const alertDiv = document.createElement('div');
                         alertDiv.className = 'alert-banner';
-                        alertDiv.innerHTML = `<div class="alert-content">📢 <strong>Aviso:</strong> Faltan <strong>${daysUntilPay} día(s)</strong> para pagar <strong>"${card.name}"</strong> (Día ${card.pay_day}). Debes <strong>$${cardSpent.toFixed(2)}</strong>.</div><button class="alert-close" onclick="this.parentElement.remove()">&times;</button>`;
+                        alertDiv.innerHTML = `<div class="alert-content">📢 <strong>Próximo vencimiento de deuda:</strong> Faltan ${diffDays} día(s) para pagarle a <strong>"${debt.creditor}"</strong> ($${Number(debt.remaining_amount).toFixed(2)}).</div><button class="alert-close" onclick="this.parentElement.remove()">&times;</button>`;
+                        container.appendChild(alertDiv);
+                    }
+                }
+            });
+
+            // 3. Alertas de Cuentas por Cobrar (Vencimientos)
+            receivables.forEach(rec => {
+                if (rec.due_date && Number(rec.remaining_amount) > 0) {
+                    const dueDate = new Date(rec.due_date);
+                    const diffTime = dueDate - todayDate;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (diffDays < 0) {
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert-banner danger';
+                        alertDiv.innerHTML = `<div class="alert-content">🚨 <strong>COBRO VENCIDO:</strong> El plazo para que <strong>"${rec.debtor}"</strong> te pagara venció el ${rec.due_date}. Te debe <strong>$${Number(rec.remaining_amount).toFixed(2)}</strong>.</div><button class="alert-close" onclick="this.parentElement.remove()">&times;</button>`;
+                        container.appendChild(alertDiv);
+                    } else if (diffDays === 0) {
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert-banner';
+                        alertDiv.innerHTML = `<div class="alert-content">⚠️ <strong>¡DÍA DE COBRO HOY!</strong> <strong>"${rec.debtor}"</strong> debe pagarte hoy ($${Number(rec.remaining_amount).toFixed(2)}).</div><button class="alert-close" onclick="this.parentElement.remove()">&times;</button>`;
+                        container.appendChild(alertDiv);
+                    } else if (diffDays > 0 && diffDays <= 3) {
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert-banner';
+                        alertDiv.innerHTML = `<div class="alert-content">📢 <strong>Próximo cobro:</strong> Faltan ${diffDays} día(s) para la fecha límite de cobro a <strong>"${rec.debtor}"</strong> ($${Number(rec.remaining_amount).toFixed(2)}).</div><button class="alert-close" onclick="this.parentElement.remove()">&times;</button>`;
                         container.appendChild(alertDiv);
                     }
                 }
@@ -1093,4 +1406,3 @@
     </script>
 </body>
 </html>
-
