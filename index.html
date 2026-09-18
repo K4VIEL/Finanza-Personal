@@ -2,1407 +2,1066 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas Personales Pro - Familiar</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Control en Línea - Sistema de Roles</title>
+    <!-- Librerías de Supabase, Html5-Qrcode y JsBarcode -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
         :root {
-            --primary: #0f172a;
-            --card-bg: #1e293b;
-            --accent: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --info: #3b82f6;
-            --text: #f8fafc;
-            --text-muted: #94a3b8;
-            --border: #334155;
+            --bg-color: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-color: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #cbd5e1;
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --header-bg: #ffffff;
+            --table-th-bg: #f8fafc;
+            --table-border: #e2e8f0;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: var(--primary); color: var(--text); padding: 15px; display: flex; justify-content: center; min-height: 100vh; align-items: center; }
-        .container { width: 100%; max-width: 480px; display: none; }
-        .container.active { display: block; }
-        
-        #authScreen { width: 100%; max-width: 380px; background: var(--card-bg); padding: 25px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.4); text-align: center; margin: auto; display: none; }
-        #authScreen.active { display: block; }
-        #authScreen h2 { margin-bottom: 8px; font-size: 22px; color: var(--accent); }
-        #authScreen p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
 
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        h1 { font-size: 18px; color: var(--text); }
-        
-        .tabs { display: flex; background: var(--card-bg); border-radius: 10px; padding: 4px; margin-bottom: 15px; border: 1px solid var(--border); overflow-x: auto; }
-        .tab { flex: 1; text-align: center; padding: 8px 4px; font-size: 10px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: 8px; transition: 0.2s; white-space: nowrap; }
-        .tab.active { background: var(--accent); color: white; }
+        [data-theme="dark"] {
+            --bg-color: #090d16;
+            --card-bg: #131c2e;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #2a3958;
+            --primary-color: #dc2626;
+            --primary-hover: #b91c1c;
+            --header-bg: #131c2e;
+            --table-th-bg: #090d16;
+            --table-border: #1e293b;
+        }
 
-        .card { background: var(--card-bg); padding: 16px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); margin-bottom: 15px; border: 1px solid var(--border); }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding: 10px; font-size: 14px; }
+        .container { max-width: 1200px; margin: 0 auto; }
         
-        #alertContainer { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
-        .alert-banner { background: rgba(245, 158, 11, 0.15); border: 1px solid var(--warning); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
-        .alert-banner.danger { background: rgba(239, 68, 68, 0.15); border-color: var(--danger); }
-        .alert-content { font-size: 12px; color: var(--text); line-height: 1.4; }
-        .alert-content strong { color: var(--warning); }
-        .alert-banner.danger .alert-content strong { color: var(--danger); }
-        .alert-close { background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; padding: 0 4px; }
-        
-        .balance-title { font-size: 12px; color: var(--text-muted); text-align: center; text-transform: uppercase; letter-spacing: 1px; }
-        .balance-amount { text-align: center; font-size: 28px; font-weight: 800; color: var(--accent); margin: 5px 0 12px 0; }
-        
-        .accounts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
-        .account-badge { background: rgba(255,255,255,0.03); padding: 8px; border-radius: 10px; text-align: center; border: 1px solid var(--border); }
-        .account-badge span { display: block; font-size: 10px; color: var(--text-muted); }
-        .account-badge strong { font-size: 13px; }
+        #alertaHorario { display: none; background: #fee2e2; border: 2px solid #ef4444; color: #b91c1c; padding: 12px; border-radius: 12px; margin-bottom: 16px; font-weight: bold; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        #toastExito { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #10b981; color: white; padding: 12px 20px; border-radius: 12px; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.25); display: none; z-index: 2000; text-align: center; width: 90%; max-width: 400px; }
 
-        .form-group { margin-bottom: 10px; text-align: left; }
-        label { display: block; margin-bottom: 3px; font-weight: 600; font-size: 12px; color: var(--text-muted); }
-        select, input { width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; outline: none; }
-        select:focus, input:focus { border-color: var(--accent); }
-        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        header { background: var(--header-bg); padding: 14px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px; }
+        @media(min-width: 768px) { header { flex-direction: row; justify-content: space-between; align-items: center; padding: 20px; } }
+        h1 { font-size: 18px; font-weight: 800; color: var(--text-color); }
+        p { font-size: 12px; color: var(--text-muted); }
         
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
-        button { padding: 12px; border: none; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer; color: white; transition: opacity 0.2s; }
-        .btn-income { background-color: var(--accent); }
-        .btn-expense { background-color: var(--danger); }
-        .btn-primary { background-color: var(--info); width: 100%; margin-top: 10px; }
-        button:hover { opacity: 0.85; }
+        .badge { background: #e0f2fe; border: 1px solid #bae6fd; color: #0369a1; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-block; }
+        [data-theme="dark"] .badge { background: #450a0a; border-color: #7f1d1d; color: #fca5a5; }
 
-        .section-title { font-size: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .transaction-list { list-style: none; max-height: 220px; overflow-y: auto; }
-        .transaction-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .theme-toggle { background: var(--primary-color); color: white; border: none; padding: 10px 14px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; }
+        @media(min-width: 768px) { .theme-toggle { width: fit-content; } }
         
-        .delete-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 4px; }
-        .delete-btn:hover { color: var(--danger); }
-        .pay-btn { background: rgba(16, 185, 129, 0.15); border: 1px solid var(--accent); color: var(--accent); border-radius: 6px; padding: 4px 8px; font-size: 11px; font-weight: bold; cursor: pointer; }
-        .add-btn { background: rgba(59, 130, 246, 0.15); border: 1px solid var(--info); color: var(--info); border-radius: 6px; padding: 4px 8px; font-size: 11px; font-weight: bold; cursor: pointer; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 0; overflow-x: auto; padding-bottom: 4px; width: 100%; -webkit-overflow-scrolling: touch; }
+        .tabs::-webkit-scrollbar { display: none; }
+        .tab-btn { background: var(--border-color); border: none; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text-color); white-space: nowrap; flex-shrink: 0; }
+        .tab-btn.active { background: var(--primary-color); color: white; }
+        .hidden-tab { display: none !important; }
+
+        .card { background: var(--card-bg); padding: 14px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 16px; }
+        .card h2 { font-size: 15px; font-weight: 700; color: var(--text-color); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
         
-        .credit-card-box, .debt-box, .receivable-box, .user-box, .goal-box { background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
-        .cc-header, .debt-header, .receivable-header, .user-header, .goal-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 6px; color: var(--warning); }
-        .receivable-header { color: var(--accent); }
-        .cc-details, .debt-details, .receivable-details, .user-details, .goal-details { display: grid; grid-template-columns: 1fr 1fr; font-size: 11px; color: var(--text-muted); gap: 4px; }
+        .tools-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 12px; }
         
-        .view-section { display: none; }
-        .view-section.active { display: block; }
-        .empty-state { text-align: center; color: var(--text-muted); padding: 15px; font-size: 13px; }
+        .scan-box { background: var(--bg-color); border: 2px dashed var(--primary-color); padding: 12px; border-radius: 12px; display: flex; flex-direction: column; gap: 8px; }
+        .search-box-standalone { background: var(--card-bg); border: 2px dashed #10b981; padding: 14px; border-radius: 14px; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 8px; }
         
-        .payment-history { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--border); font-size: 11px; color: var(--text-muted); }
-        .payment-history ul { list-style: none; padding-left: 0; margin-top: 4px; }
-        .payment-history li { display: flex; justify-content: space-between; margin-bottom: 2px; }
+        input, select { width: 100%; border: 1px solid var(--border-color); border-radius: 10px; padding: 11px 12px; font-size: 14px; outline: none; background: var(--card-bg); color: var(--text-color); -webkit-appearance: none; }
+        input:focus, select:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(220,38,38,0.15); }
         
-        .progress-bar-container { background: var(--border); border-radius: 8px; height: 8px; width: 100%; margin-top: 6px; overflow: hidden; }
-        .progress-bar-fill { background: var(--accent); height: 100%; width: 0%; transition: width 0.3s; }
+        .btn-camara { background: #0284c7; color: white; border: none; padding: 10px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; }
+        @media(min-width: 768px) { .btn-camara { width: fit-content; } }
+        
+        .reader-container { width: 100%; margin-bottom: 12px; display: none; border: 2px solid var(--primary-color); border-radius: 12px; overflow: hidden; background: #000; }
+        
+        .form-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        @media(min-width: 768px) { .form-grid { grid-template-columns: repeat(4, 1fr); } }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+        
+        .btn-submit { background: #10b981; color: white; border: none; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; width: 100%; margin-top: 4px; }
+        @media(min-width: 768px) { .btn-submit { grid-column: 1 / -1; justify-self: end; width: auto; } }
+        
+        .grid-sections { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        @media(min-width: 1024px) { .grid-sections { grid-template-columns: repeat(2, 1fr); } }
+        
+        .section-card { background: var(--card-bg); padding: 16px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border-top: 5px solid #ccc; margin-bottom: 16px; }
+        .border-urgente { border-top-color: #ef4444; }
+        .border-frio { border-top-color: #0ea5e9; }
+        .border-legsin { border-top-color: #f59e0b; }
+        .border-legcon { border-top-color: #10b981; }
+        .border-pasillo1 { border-top-color: #6366f1; }
+        .border-pasillo2 { border-top-color: #ec4899; }
+        .border-pasillo3 { border-top-color: #84cc16; }
+        .border-pasillo5 { border-top-color: #8b5cf6; }
+
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 8px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; color: var(--text-color); white-space: nowrap; }
+        th, td { padding: 10px 8px; border-bottom: 1px solid var(--table-border); }
+        th { background: var(--table-th-bg); color: var(--text-muted); font-weight: 600; }
+        
+        .badge-status { padding: 4px 8px; border-radius: 9999px; font-weight: 700; font-size: 10px; display: inline-block; }
+        .bg-red { background: #fee2e2; color: #b91c1c; }
+        .bg-amber { background: #fef3c7; color: #b45309; }
+        .bg-green { background: #d1fae5; color: #047857; }
+        
+        .btn-delete { color: #ef4444; background: rgba(239,68,68,0.1); border: none; padding: 6px 10px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 12px; }
+        .btn-edit { color: var(--primary-color); background: rgba(37,99,235,0.1); border: none; padding: 6px 10px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 12px; margin-right: 4px; }
+
+        .price-request-card, .destruction-card, .usuarios-card, .traslados-card { background: var(--card-bg); padding: 16px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .barcode-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 14px; }
+        @media(min-width: 640px) { .barcode-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); } }
+        
+        .barcode-item { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .barcode-box { background: white; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; width: 100%; display: flex; justify-content: center; }
+        .counter-badge { background: #dbeafe; color: #1e40af; padding: 6px 14px; border-radius: 99px; font-weight: 700; font-size: 12px; display: inline-block; }
+        [data-theme="dark"] .counter-badge { background: #450a0a; color: #fca5a5; }
+        .hidden-section { display: none !important; }
+        
+        #loginScreen { max-width: 380px; margin: 60px auto; background: var(--card-bg); padding: 24px; border-radius: 20px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
     </style>
 </head>
-<body>
+<body data-theme="light">
 
-    <!-- PANTALLA DE ACCESO -->
-    <div id="authScreen" class="active">
-        <h2>Control Familiar</h2>
-        <p>Ingresa con tu usuario y contraseña</p>
-        
-        <div class="form-group">
-            <label>Usuario</label>
-            <input type="text" id="loginUser" placeholder="Ej. kaviel">
-        </div>
-        <div class="form-group">
-            <label>Contraseña</label>
-            <input type="password" id="loginPass" placeholder="••••••••">
-        </div>
-        
-        <button class="btn-primary" onclick="login()">Entrar al Sistema</button>
-        <p id="authError" style="color: var(--danger); font-size: 12px; margin-top: 10px; display: none;"></p>
+    <!-- PANTALLA DE LOGIN -->
+    <div id="loginScreen" class="hidden-section">
+        <h2 style="margin-bottom: 6px; text-align: center; color: var(--text-color); font-size: 22px;">Control de Tienda</h2>
+        <p style="text-align: center; color: var(--text-muted); margin-bottom: 20px; font-size: 13px;">Ingrese su usuario y clave laboral</p>
+        <form id="loginForm" style="display: flex; flex-direction: column; gap: 14px;">
+            <div class="form-group">
+                <label>Usuario</label>
+                <input type="text" id="loginUsuario" required placeholder="Ej: admin, encargado1">
+            </div>
+            <div class="form-group">
+                <label>Clave Laboral</label>
+                <input type="password" id="loginClave" required placeholder="********">
+            </div>
+            <button type="submit" class="btn-submit" style="margin-top: 8px;">Ingresar al Sistema</button>
+        </form>
+        <div id="loginError" style="color: #ef4444; font-size: 12px; margin-top: 12px; text-align: center; font-weight: 600;"></div>
     </div>
 
     <!-- APLICACIÓN PRINCIPAL -->
-    <div class="container" id="mainAppContainer">
+    <div id="appContainer" class="container hidden-section">
+        <div id="toastExito">¡Operación realizada con éxito!</div>
+        <div id="alertaHorario">🚨 ¡HORARIO DE RETIRO ACTIVO (6:30 PM - 9:00 PM)! Tienes productos que deben retirarse.</div>
+
         <header>
-            <h1 id="welcomeUser">💼 Finanzas Pro</h1>
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <span id="syncStatus" style="font-size: 11px; color: var(--accent); cursor: pointer;" onclick="forceSync()">🟢 En línea</span>
-                <button onclick="logout()" style="background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger); padding: 4px 8px; font-size: 11px; border-radius: 6px;">Salir</button>
+            <div>
+                <h1 id="tituloBienvenida">Control en Línea</h1>
+                <p>Usuario: <span id="spanUserBadge" style="font-weight: bold; color: var(--primary-color);">...</span> | Rol: <span id="spanRol" class="badge" style="font-weight: bold;">...</span></p>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                <button class="theme-toggle" onclick="alternarTema()">🌓 Tema</button>
+                <button onclick="cerrarSesion()" style="background: #ef4444; color: white; border: none; padding: 10px 14px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold; width: 100%;">Salir</button>
+            </div>
+            <div class="tabs" style="margin-top: 4px;">
+                <button class="tab-btn active" onclick="cambiarTab('vencimientos')">📦 Retiros</button>
+                <button class="tab-btn" onclick="cambiarTab('solicitudes')">🏷️ Precios (<span id="contadorSolicitudes">0</span>)</button>
+                <button class="tab-btn" onclick="cambiarTab('traslados')">🚚 Traslados (<span id="contadorTraslados">0</span>)</button>
+                <button class="tab-btn hidden-tab" id="tabBtnDestruccion" onclick="cambiarTab('destruccion')">🗑️ Destrucción (<span id="contadorDestruccion">0</span>)</button>
+                <button class="tab-btn hidden-tab" id="tabBtnUsuarios" onclick="cambiarTab('usuarios')">👥 Usuarios</button>
             </div>
         </header>
 
-        <div class="tabs" id="appTabs">
-            <div class="tab active" onclick="switchTab('dashboard')">Panel</div>
-            <div class="tab" onclick="switchTab('cards')">Tarjetas</div>
-            <div class="tab" onclick="switchTab('debts')">Deudas</div>
-            <div class="tab" onclick="switchTab('receivables')">Cobros</div>
-            <div class="tab" onclick="switchTab('goals')">Metas</div>
-            <div class="tab" onclick="switchTab('salary')">Sueldo</div>
-            <div class="tab" id="adminTabBtn" onclick="switchTab('admin')" style="display:none; color: var(--warning);">Admin ⚙️</div>
-        </div>
-
-        <div id="alertContainer"></div>
-
-        <!-- VISTA 1: PANEL -->
-        <div id="view-dashboard" class="view-section active">
+        <!-- SECCIÓN 1: VENCIMIENTOS -->
+        <div id="seccion-vencimientos">
             <div class="card">
-                <div class="balance-title">Balance Neto Disponible</div>
-                <div class="balance-amount" id="totalBalance">$0.00</div>
-                <div class="accounts-grid">
-                    <div class="account-badge"><span>Efectivo</span><strong id="cashBalance">$0.00</strong></div>
-                    <div class="account-badge"><span>Banco</span><strong id="bankBalance">$0.00</strong></div>
-                    <div class="account-badge"><span>Criptomonedas</span><strong id="cryptoBalance" style="color: var(--info);">$0.00</strong></div>
-                    <div class="account-badge"><span>T. Crédito Total</span><strong id="ccDebtBalance" style="color: var(--danger);">$0.00</strong></div>
+                <h2>
+                    <span>Registrar Producto</span>
+                    <span id="modoForm" style="font-size: 11px; color: var(--primary-color); font-weight: normal;">Modo: Manual o pistola</span>
+                </h2>
+                <div class="tools-grid">
+                    <div class="scan-box">
+                        <label style="font-weight: 700; color: var(--primary-color);">Código de Barras</label>
+                        <input type="text" id="codigoEscaneado" placeholder="Pasa la pistola o escribe...">
+                        <button type="button" id="btnToggleCam" class="btn-camara">📷 Escanear con Cámara</button>
+                    </div>
+                </div>
+                
+                <div id="readerVencimientos" class="reader-container"></div>
+                <button type="button" id="btnCerrarCam" class="hidden-section" style="margin-bottom: 12px; background: #ef4444; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px; width: 100%; font-weight: bold;">Cerrar Cámara</button>
+
+                <form id="productForm" class="form-grid">
+                    <input type="hidden" id="codigoBarraGuardar">
+                    <div class="form-group">
+                        <label>Nombre del Producto</label>
+                        <input type="text" id="nombre" required placeholder="Ej: Yogurt, Espinaca...">
+                    </div>
+                    <div class="form-group">
+                        <label>Categoría / Área / Pasillo</label>
+                        <select id="categoria" required>
+                            <option value="frio">❄️ Nevera / Frío (-5 días)</option>
+                            <option value="legumbre_sin_cad">🌱 Legumbres Elaboración (-8 días)</option>
+                            <option value="legumbre_con_cad">📦 Legumbres Empacadas (-2 días)</option>
+                            <option value="pasillo1">🛒 Pasillo 1: Limpieza (-3 días)</option>
+                            <option value="pasillo2">🍿 Pasillo 2: Snack (-3 días)</option>
+                            <option value="pasillo3">🌾 Pasillo 3: Granos (-3 días)</option>
+                            <option value="pasillo5">🔩 Pasillo 5: Ferri (-3 días)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Cantidad</label>
+                        <input type="number" id="cantidadProducto" min="1" value="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha de Elaboración (Opcional)</label>
+                        <input type="date" id="fechaElaboracion">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelFecha">Fecha de Caducidad / Expiración</label>
+                        <input type="date" id="fechaPrincipal" required>
+                    </div>
+                    <div style="grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; background: rgba(245, 158, 11, 0.1); padding: 10px; border-radius: 8px; border: 1px dashed #f59e0b;">
+                        <input type="checkbox" id="checkPonerTraslado" style="width: 18px; height: 18px; accent-color: #f59e0b; cursor: pointer;">
+                        <label for="checkPonerTraslado" style="font-size: 13px; font-weight: 700; color: var(--text-color); cursor: pointer;">🚚 Enviar también a Traslados (Baja Rotación - Aviso 20 días antes)</label>
+                    </div>
+                    <button type="submit" class="btn-submit">Guardar en la Nube</button>
+                </form>
+            </div>
+
+            <div class="search-box-standalone">
+                <label style="font-weight: 700; color: #047857; font-size: 13px;">🔍 Buscar Producto</label>
+                <input type="text" id="inputBuscador" placeholder="Escribe nombre o código para filtrar..." style="font-size: 13px; padding: 10px;">
+            </div>
+
+            <div class="section-card border-urgente" style="margin-bottom: 16px;">
+                <h3 style="color: #b91c1c; font-size: 15px;">🚨 Productos Vencidos (Urgente)</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>Producto</th><th>Cant.</th><th>Área</th><th>Elab.</th><th>F. Retiro</th><th>Estado</th><th>Acción</th></tr></thead>
+                        <tbody id="lista-urgentes"></tbody>
+                    </table>
                 </div>
             </div>
 
-            <div class="card">
-                <div class="form-group">
-                    <label>Cuenta de Pago / Origen</label>
-                    <select id="account" onchange="toggleCardSelector()">
-                        <option value="Efectivo">💵 Efectivo</option>
-                        <option value="Banco">💳 Cuenta Bancaria</option>
-                        <option value="Criptomonedas">₿ Criptomonedas</option>
-                        <option value="Tarjeta de Crédito">💳 Tarjeta de Crédito</option>
-                    </select>
+            <div class="grid-sections">
+                <div class="section-card border-frio">
+                    <h3 style="font-size: 14px;">❄️ Nevera / Frío</h3>
+                    <div class="table-responsive"><table><thead><tr><th>Producto</th><th>Cant.</th><th>Elab.</th><th>Caduca</th><th>Retiro</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="lista-frio"></tbody></table></div>
                 </div>
-
-                <div class="form-group" id="cardSelectorGroup" style="display: none;">
-                    <label>Selecciona la Tarjeta Específica</label>
-                    <select id="specificCard"></select>
+                <div class="section-card border-legsin">
+                    <h3 style="font-size: 14px;">🌱 Legumbres (Sin cad.)</h3>
+                    <div class="table-responsive"><table><thead><tr><th>Producto</th><th>Cant.</th><th>Elab.</th><th>Retiro</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="lista-legumbre_sin_cad"></tbody></table></div>
                 </div>
-
-                <div class="form-group" id="deferredGroup" style="display: none;">
-                    <label>Tipo de Diferido</label>
-                    <select id="deferredMonths">
-                        <option value="1">Pago Corriente (1 Mes)</option>
-                        <option value="3">Diferido a 3 Meses</option>
-                        <option value="6">Diferido a 6 Meses</option>
-                        <option value="9">Diferido a 9 Meses</option>
-                        <option value="12">Diferido a 12 Meses</option>
-                    </select>
+                <div class="section-card border-legcon">
+                    <h3 style="font-size: 14px;">📦 Legumbres Empacadas</h3>
+                    <div class="table-responsive"><table><thead><tr><th>Producto</th><th>Cant.</th><th>Elab.</th><th>Caduca</th><th>Retiro</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="lista-legumbre_con_cad"></tbody></table></div>
                 </div>
-
-                <div class="form-group">
-                    <label>Categoría</label>
-                    <select id="category">
-                        <option value="Comida">🍔 Comida / Supermercado</option>
-                        <option value="Transporte">🚗 Transporte / Gasolina</option>
-                        <option value="Salario">💰 Ingreso de Sueldo</option>
-                        <option value="Servicios">🏠 Servicios (Luz, Agua, Internet)</option>
-                        <option value="Entretenimiento">🎉 Entretenimiento</option>
-                        <option value="Inversión Cripto">📈 Inversión / Cripto</option>
-                        <option value="Otros">📦 Otros</option>
-                    </select>
+                <div class="section-card border-pasillo1">
+                    <h3 style="font-size: 14px;">🛒 Pasillo 1: Limpieza</h3>
+                    <div class="table-responsive"><table><thead><tr><th>Producto</th><th>Cant.</th><th>Elab.</th><th>Caduca</th><th>Retiro</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="lista-pasillo1"></tbody></table></div>
                 </div>
-                <div class="form-group"><label>Monto Total ($)</label><input type="number" id="amount" placeholder="0.00" step="0.01"></div>
-                <div class="form-group"><label>Nota / Descripción</label><input type="text" id="note" placeholder="Ej. Compra de despensa"></div>
-                <div class="btn-group">
-                    <button class="btn-expense" onclick="addTransaction('Gasto')">Gasto 📉</button>
-                    <button class="btn-income" onclick="addTransaction('Ingreso')">Ingreso 📈</button>
+                <div class="section-card border-pasillo2">
+                    <h3 style="font-size: 14px;">🍿 Pasillo 2: Snack</h3>
+                    <div class="table-responsive"><table><thead><tr><th>Producto</th><th>Cant.</th><th>Elab.</th><th>Caduca</th><th>Retiro</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="lista-pasillo2"></tbody></table></div>
                 </div>
-            </div>
-
-            <!-- GRÁFICO ESTADÍSTICO -->
-            <div class="card">
-                <div class="section-title"><span>📊 Gastos por Categoría</span></div>
-                <div style="position: relative; height: 200px; width: 100%;">
-                    <canvas id="expenseChart"></canvas>
+                <div class="section-card border-pasillo3">
+                    <h3 style="font-size: 14px;">🌾 Pasillo 3: Granos</h3>
+                    <div class="table-responsive"><table><thead><tr><th>Producto</th><th>Cant.</th><th>Elab.</th><th>Caduca</th><th>Retiro</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="lista-pasillo3"></tbody></table></div>
                 </div>
-            </div>
-
-            <div class="card">
-                <div class="section-title"><span>Historial de Movimientos</span><span id="txCount" style="font-size: 11px; color: var(--text-muted);">0</span></div>
-                <ul class="transaction-list" id="transactionList"><div class="empty-state">Cargando datos...</div></ul>
-            </div>
-        </div>
-
-        <!-- VISTA 2: TARJETAS -->
-        <div id="view-cards" class="view-section">
-            <div class="card">
-                <div class="section-title"><span>💳 Registrar Tarjeta de Crédito</span></div>
-                <div class="form-group"><label>Nombre de la Tarjeta</label><input type="text" id="ccName" placeholder="Ej. Visa Oro"></div>
-                <div class="form-group"><label>Límite de Crédito ($)</label><input type="number" id="ccLimit" placeholder="1000.00"></div>
-                <div class="form-group"><label>Día de Corte</label><input type="number" id="ccCutDay" placeholder="15" min="1" max="31"></div>
-                <div class="form-group"><label>Día Máximo de Pago</label><input type="number" id="ccPayDay" placeholder="25" min="1" max="31"></div>
-                <button class="btn-primary" onclick="saveCreditCard()">Guardar Tarjeta</button>
-            </div>
-            <div class="card">
-                <div class="section-title"><span>Mis Tarjetas</span></div>
-                <div id="creditCardsList"><div class="empty-state">No hay tarjetas registradas</div></div>
-            </div>
-        </div>
-
-        <!-- VISTA 3: DEUDAS -->
-        <div id="view-debts" class="view-section">
-            <div class="card">
-                <div class="section-title"><span>📝 Registrar Deuda Personal</span></div>
-                <div class="form-group"><label>Acreedor (¿A quién le debes?)</label><input type="text" id="debtCreditor" placeholder="Ej. Juan Pérez"></div>
-                <div class="form-group"><label>Monto Total Adeudado ($)</label><input type="number" id="debtAmount" placeholder="150.00" step="0.01"></div>
-                <div class="form-group"><label>Fecha Límite de Pago</label><input type="date" id="debtDueDate"></div>
-                <div class="form-group"><label>Nota / Motivo</label><input type="text" id="debtNote" placeholder="Ej. Préstamo"></div>
-                <button class="btn-primary btn-expense" onclick="savePersonalDebt()">Guardar Deuda 📉</button>
-            </div>
-            <div class="card">
-                <div class="section-title"><span>Control de Deudas</span><strong id="totalDebtAmount" style="color: var(--danger); font-size: 13px;">$0.00</strong></div>
-                <div id="personalDebtsList"><div class="empty-state">No hay deudas registradas</div></div>
+                <div class="section-card border-pasillo5">
+                    <h3 style="font-size: 14px;">🔩 Pasillo 5: Ferri</h3>
+                    <div class="table-responsive"><table><thead><tr><th>Producto</th><th>Cant.</th><th>Elab.</th><th>Caduca</th><th>Retiro</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="lista-pasillo5"></tbody></table></div>
+                </div>
             </div>
         </div>
 
-        <!-- VISTA 4: COBROS -->
-        <div id="view-receivables" class="view-section">
-            <div class="card">
-                <div class="section-title"><span>💰 Registrar Dinero Prestado (Por Cobrar)</span></div>
-                <div class="form-group"><label>Deudor (¿Quién te debe?)</label><input type="text" id="receivableDebtor" placeholder="Ej. Carlos Mendoza"></div>
-                <div class="form-group"><label>Monto Prestado ($)</label><input type="number" id="receivableAmount" placeholder="50.00" step="0.01"></div>
-                <div class="form-group"><label>Fecha Límite de Cobro</label><input type="date" id="receivableDueDate"></div>
-                <div class="form-group"><label>Nota / Motivo</label><input type="text" id="receivableNote" placeholder="Ej. Almuerzo o préstamo rápido"></div>
-                <button class="btn-primary btn-income" onclick="saveReceivableDebt()">Registrar Préstamo 📈</button>
-            </div>
-            <div class="card">
-                <div class="section-title"><span>Cuentas por Cobrar</span><strong id="totalReceivableAmount" style="color: var(--accent); font-size: 13px;">$0.00</strong></div>
-                <div id="receivablesList"><div class="empty-state">No hay cobros pendientes</div></div>
-            </div>
-        </div>
-
-        <!-- VISTA 5: METAS DE AHORRO -->
-        <div id="view-goals" class="view-section">
-            <div class="card">
-                <div class="section-title"><span>🎯 Registrar Meta de Ahorro</span></div>
-                <div class="form-group"><label>Nombre de la Meta</label><input type="text" id="goalName" placeholder="Ej. Viaje o Emergencia"></div>
-                <div class="form-group"><label>Monto Objetivo ($)</label><input type="number" id="goalTarget" placeholder="500.00" step="0.01"></div>
-                <button class="btn-primary" onclick="saveSavingsGoal()">Crear Meta 🚀</button>
-            </div>
-            <div class="card">
-                <div class="section-title"><span>Mis Metas y Fondos</span></div>
-                <div id="savingsGoalsList"><div class="empty-state">No hay metas registradas</div></div>
-            </div>
-        </div>
-
-        <!-- VISTA 6: SUELDO -->
-        <div id="view-salary" class="view-section">
-            <div class="card">
-                <div class="section-title"><span>💰 Configurar Sueldo Mensual</span></div>
-                <div class="form-group"><label>Monto de Sueldo Mensual ($)</label><input type="number" id="salaryAmount" placeholder="1500.00" step="0.01"></div>
-                <div class="form-group">
-                    <label>Cuenta de Destino</label>
-                    <select id="salaryAccount">
-                        <option value="Banco">💳 Cuenta Bancaria</option>
-                        <option value="Efectivo">💵 Efectivo</option>
-                        <option value="Criptomonedas">₿ Criptomonedas</option>
-                    </select>
+        <!-- SECCIÓN 2: SOLICITUDES DE PRECIO -->
+        <div id="seccion-solicitudes" class="hidden-section">
+            <div class="price-request-card">
+                <h2>Solicitudes de Precio</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+                    <div class="counter-badge" id="textoContadorPrecios" style="margin-bottom: 0;">Tienes 0 solicitudes pendientes</div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button type="button" onclick="alternarOcultarUltimoDigito()" id="btnOcultarDigito" style="background: #0284c7; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 12px;">🙈 Ocultar Último Dígito</button>
+                        <button type="button" onclick="imprimirYBorrarTodosPrecios()" style="background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 12px;">🖨️ Precio Impreso (Borrar Todos)</button>
+                    </div>
                 </div>
-                <button class="btn-primary btn-income" onclick="applySalary()">Ingresar Sueldo Ahora 🚀</button>
+
+                <div class="card" style="background: var(--bg-color); border: 1px solid var(--border-color); margin-bottom: 16px;">
+                    <div style="margin-bottom: 10px;"><button type="button" id="btnToggleCamSolicitud" class="btn-camara">📷 Escanear con Cámara</button></div>
+                    <div id="readerSolicitudes" class="reader-container"></div>
+                    <button type="button" id="btnCerrarCamSolicitud" class="hidden-section" style="margin-bottom: 10px; background: #ef4444; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px; width: 100%; font-weight: bold;">Cerrar Cámara</button>
+                    
+                    <form id="formSolicitudPrecio" class="form-grid" style="grid-template-columns: 1fr;">
+                        <div class="form-group"><label>Código de Barras</label><input type="text" id="solCodigo" required placeholder="Código completo..."></div>
+                        <div class="form-group"><label>Nombre del Producto</label><input type="text" id="solNombre" placeholder="Descripción del producto..."></div>
+                        <div class="form-group"><label>Cantidad</label><input type="number" id="solCantidad" min="1" value="1" required></div>
+                        <div class="form-group"><label>Fecha de Elaboración (Opcional)</label><input type="date" id="solElaboracion"></div>
+                        <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer; width: 100%;">Generar Etiqueta</button>
+                    </form>
+                </div>
+                <div class="barcode-grid" id="gridSolicitudesPrecio"></div>
             </div>
         </div>
 
-        <!-- VISTA 7: ADMIN -->
-        <div id="view-admin" class="view-section">
-            <div class="card">
-                <div class="section-title"><span>⚙️ Crear o Modificar Usuario</span></div>
-                <div class="form-group"><label>Nombre de Usuario</label><input type="text" id="newUsername" placeholder="Ej. esposa, mama"></div>
-                <div class="form-group"><label>Contraseña</label><input type="text" id="newPassword" placeholder="Clave de acceso"></div>
-                <button class="btn-primary" onclick="saveUserAdmin()">Guardar / Actualizar Usuario</button>
+        <!-- SECCIÓN: TRASLADOS (BAJA ROTACIÓN) -->
+        <div id="seccion-traslados" class="hidden-section">
+            <div class="traslados-card">
+                <h2 style="font-size: 16px;">🚚 Control de Traslados (Baja Rotación)</h2>
+                <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 14px;">Registra productos de poca venta. El sistema te avisará 20 días antes de su expiración para trasladarlos a tiempo.</p>
+                
+                <div class="counter-badge" id="textoContadorTraslados">Tienes 0 productos en seguimiento</div>
+                
+                <div class="card" style="background: var(--bg-color); border: 1px solid var(--border-color); margin-top: 14px; margin-bottom: 16px;">
+                    <form id="formTraslado" class="form-grid" style="grid-template-columns: 1fr;">
+                        <div class="form-group"><label>Código de Barras</label><input type="text" id="trasCodigo" required placeholder="Código..."></div>
+                        <div class="form-group"><label>Nombre del Producto</label><input type="text" id="trasNombre" required placeholder="Ej: Salsa especial, Lata importada..."></div>
+                        <div class="form-group"><label>Cantidad</label><input type="number" id="trasCantidad" min="1" value="1" required></div>
+                        <div class="form-group"><label>Fecha de Elaboración (Opcional)</label><input type="date" id="trasElaboracion"></div>
+                        <div class="form-group"><label>Fecha de Expiración / Vencimiento</label><input type="date" id="trasExpiracion" required></div>
+                        <button type="submit" style="background: #f59e0b; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer; width: 100%;">Registrar para Traslado</button>
+                    </form>
+                </div>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>Producto</th><th>Cant.</th><th>Elab.</th><th>Expiración</th><th>Estado de Alerta (20 días)</th><th>Acción</th></tr></thead>
+                        <tbody id="lista-traslados-sistema"></tbody>
+                    </table>
+                </div>
             </div>
-            <div class="card">
-                <div class="section-title"><span>Lista de Usuarios Permitidos</span></div>
-                <div id="usersAdminList"><div class="empty-state">Cargando usuarios...</div></div>
+        </div>
+
+        <!-- SECCIÓN 3: DESTRUCCIÓN -->
+        <div id="seccion-destruccion" class="hidden-section">
+            <div class="destruction-card">
+                <h2 style="font-size: 16px;">Destrucción de Productos</h2>
+                <div class="counter-badge" id="textoContadorDestruccion">Tienes 0 registros pendientes</div>
+                <div class="card" style="background: var(--bg-color); border: 1px solid var(--border-color); margin-bottom: 16px;">
+                    <div style="margin-bottom: 10px;"><button type="button" id="btnToggleCamDestruccion" class="btn-camara">📷 Escanear con Cámara</button></div>
+                    <div id="readerDestruccion" class="reader-container"></div>
+                    <button type="button" id="btnCerrarCamDestruccion" class="hidden-section" style="margin-bottom: 10px; background: #ef4444; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px; width: 100%; font-weight: bold;">Cerrar Cámara</button>
+                    
+                    <form id="formDestruccion" class="form-grid" style="grid-template-columns: 1fr;">
+                        <div class="form-group"><label>Código de Barras</label><input type="text" id="desCodigo" required placeholder="Código..."></div>
+                        <div class="form-group"><label>Nombre / Descripción</label><input type="text" id="desNombre" required placeholder="Ej: Yogurt Entero 1L"></div>
+                        <div class="form-group"><label>Cantidad</label><input type="number" id="desCantidad" min="1" value="1" required></div>
+                        <div class="form-group"><label>Fecha de Elaboración (Opcional)</label><input type="date" id="desElaboracion"></div>
+                        <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer; width: 100%;">Dejar Pendiente</button>
+                    </form>
+                </div>
+                
+                <h3 style="margin-top: 20px; margin-bottom: 10px; font-size: 14px; color: var(--text-color);">Pendientes por Destruir</h3>
+                <div class="barcode-grid" id="gridDestruccion"></div>
+
+                <h3 style="margin-top: 24px; margin-bottom: 10px; font-size: 14px; color: #10b981;">📜 Historial de Destrucciones</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>Producto</th><th>Cant.</th><th>Usuario</th><th>Fecha y Hora</th></tr></thead>
+                        <tbody id="lista-historial-destruccion"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 4: GESTIÓN DE USUARIOS -->
+        <div id="seccion-usuarios" class="hidden-section">
+            <div class="usuarios-card">
+                <h2 style="font-size: 16px;">Gestión de Usuarios</h2>
+                <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 14px;">Crea cuentas, modifica claves o elimina accesos.</p>
+                
+                <div class="card" style="background: var(--bg-color); border: 1px solid var(--border-color); margin-bottom: 16px;">
+                    <form id="formCrearUsuario" class="form-grid" style="grid-template-columns: 1fr;">
+                        <div class="form-group"><label>Nuevo Usuario</label><input type="text" id="nuevoUsuario" required placeholder="Nombre de usuario..."></div>
+                        <div class="form-group"><label>Clave Laboral</label><input type="text" id="nuevaClave" required placeholder="Contraseña..."></div>
+                        <div class="form-group">
+                            <label>Rol</label>
+                            <select id="nuevoRol" required>
+                                <option value="colaborador">Colaborador</option>
+                                <option value="encargado">Encargado</option>
+                            </select>
+                        </div>
+                        <button type="submit" style="background: #10b981; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer; width: 100%;">Crear Usuario</button>
+                    </form>
+                </div>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>Usuario</th><th>Clave</th><th>Rol</th><th>Acciones</th></tr></thead>
+                        <tbody id="lista-usuarios-sistema"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        const SUPABASE_URL = 'https://flxsufbwttizbqtymqrb.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_5R_cgDMLtMh9JQPpUow5YQ_epltv-V6';
+        const SUPABASE_URL = 'https://dbnlkdalbczxnizyrxez.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRibmxrZGFsYmN6eG5penlyeGV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MzE1ODUsImV4cCI6MjEwNTEwNzU4NX0.IAg6BdfzY4aqIBS6RQhafkRr_aeYos7pdaGAS8L16kA';
         
-        const { createClient } = supabase;
-        const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        let currentUsername = localStorage.getItem('finanzas_user') || null;
-        let transactions = [];
-        let creditCards = [];
-        let personalDebts = [];
-        let receivables = [];
-        let savingsGoals = [];
-        let expenseChartInstance = null;
+        let usuarioActual = localStorage.getItem('usuario_actual') || null;
+        let rolActual = localStorage.getItem('rol_actual') || null;
+        let temaActual = localStorage.getItem('tema_sistema') || 'light';
 
-        window.onload = function() {
-            if (currentUsername) {
-                unlockApp();
+        let productos = [];
+        let solicitudesPrecio = [];
+        let productosTraslados = [];
+        let productosDestruccion = [];
+        let historialDestruccion = [];
+        let listaUsuarios = [];
+
+        let ocultarUltimoDigitoGlobal = false;
+        let html5QrCode = null;
+
+        const loginScreen = document.getElementById('loginScreen');
+        const appContainer = document.getElementById('appContainer');
+        const loginForm = document.getElementById('loginForm');
+        const loginError = document.getElementById('loginError');
+        const toastExito = document.getElementById('toastExito');
+
+        function aplicarTema(tema) {
+            document.body.setAttribute('data-theme', tema);
+            localStorage.setItem('tema_sistema', tema);
+        }
+
+        function alternarTema() {
+            temaActual = temaActual === 'light' ? 'dark' : 'light';
+            aplicarTema(temaActual);
+        }
+
+        function mostrarToast(mensaje) {
+            toastExito.textContent = mensaje;
+            toastExito.style.display = 'block';
+            setTimeout(() => { toastExito.style.display = 'none'; }, 3000);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            aplicarTema(temaActual);
+            if (usuarioActual && rolActual) {
+                activarSesionInterfaz();
             } else {
-                document.getElementById('authScreen').classList.add('active');
-                document.getElementById('mainAppContainer').classList.remove('active');
+                loginScreen.classList.remove('hidden-section');
             }
-        };
+        });
 
-        async function login() {
-            const user = document.getElementById('loginUser').value.trim().toLowerCase();
-            const pass = document.getElementById('loginPass').value;
-            const errEl = document.getElementById('authError');
-            errEl.style.display = 'none';
+        function activarSesionInterfaz() {
+            loginScreen.classList.add('hidden-section');
+            appContainer.classList.remove('hidden-section');
+            document.getElementById('spanUserBadge').textContent = usuarioActual;
+            document.getElementById('spanRol').textContent = rolActual.toUpperCase();
 
-            if (!user || !pass) {
-                errEl.textContent = "Ingresa usuario y contraseña.";
-                errEl.style.display = 'block';
-                return;
-            }
+            const tabDestruccion = document.getElementById('tabBtnDestruccion');
+            const tabUsuarios = document.getElementById('tabBtnUsuarios');
 
-            if (!navigator.onLine) {
-                const cachedUser = localStorage.getItem('finanzas_cached_user_' + user);
-                if (cachedUser === pass) {
-                    currentUsername = user;
-                    localStorage.setItem('finanzas_user', user);
-                    unlockApp();
-                    return;
-                } else {
-                    errEl.textContent = "Sin conexión y sin caché previa de este usuario.";
-                    errEl.style.display = 'block';
-                    return;
-                }
+            if (rolActual === 'encargado' || rolActual === 'creador') {
+                tabDestruccion.classList.remove('hidden-tab');
+            } else {
+                tabDestruccion.classList.add('hidden-tab');
             }
 
-            const { data, error } = await _supabase.from('app_users').select('*').eq('username', user).single();
+            if (rolActual === 'creador') {
+                tabUsuarios.classList.remove('hidden-tab');
+            } else {
+                tabUsuarios.classList.add('hidden-tab');
+            }
+
+            cargarDatos();
+        }
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const usuarioInput = document.getElementById('loginUsuario').value.trim().toLowerCase();
+            const claveInput = document.getElementById('loginClave').value.trim();
+            loginError.textContent = '';
+
+            const { data, error } = await supabaseClient
+                .from('perfiles_usuarios')
+                .select('*')
+                .eq('usuario', usuarioInput)
+                .eq('clave', claveInput)
+                .single();
 
             if (error || !data) {
-                errEl.textContent = "El usuario no existe.";
-                errEl.style.display = 'block';
+                loginError.textContent = "Usuario o clave incorrectos.";
                 return;
             }
 
-            if (data.password === pass) {
-                currentUsername = user;
-                localStorage.setItem('finanzas_user', user);
-                localStorage.setItem('finanzas_cached_user_' + user, pass);
-                unlockApp();
-            } else {
-                errEl.textContent = "Contraseña incorrecta.";
-                errEl.style.display = 'block';
+            usuarioActual = data.usuario;
+            rolActual = data.rol;
+
+            localStorage.setItem('usuario_actual', usuarioActual);
+            localStorage.setItem('rol_actual', rolActual);
+
+            activarSesionInterfaz();
+        });
+
+        function cerrarSesion() {
+            detenerCamaraUniversal();
+            localStorage.removeItem('usuario_actual');
+            localStorage.removeItem('rol_actual');
+            usuarioActual = null;
+            rolActual = null;
+            appContainer.classList.add('hidden-section');
+            loginScreen.classList.remove('hidden-section');
+            document.getElementById('loginUsuario').value = '';
+            document.getElementById('loginClave').value = '';
+        }
+
+        function cambiarTab(tab) {
+            detenerCamaraUniversal();
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('seccion-vencimientos').classList.add('hidden-section');
+            document.getElementById('seccion-solicitudes').classList.add('hidden-section');
+            document.getElementById('seccion-traslados').classList.add('hidden-section');
+            document.getElementById('seccion-destruccion').classList.add('hidden-section');
+            document.getElementById('seccion-usuarios').classList.add('hidden-section');
+
+            if (tab === 'vencimientos') {
+                document.getElementById('seccion-vencimientos').classList.remove('hidden-section');
+                document.querySelector('.tabs button:nth-child(1)').classList.add('active');
+            } else if (tab === 'solicitudes') {
+                document.getElementById('seccion-solicitudes').classList.remove('hidden-section');
+                document.querySelector('.tabs button:nth-child(2)').classList.add('active');
+                renderizarSolicitudesPrecio();
+            } else if (tab === 'traslados') {
+                document.getElementById('seccion-traslados').classList.remove('hidden-section');
+                document.querySelector('.tabs button:nth-child(3)').classList.add('active');
+                renderizarTraslados();
+            } else if (tab === 'destruccion' && (rolActual === 'encargado' || rolActual === 'creador')) {
+                document.getElementById('seccion-destruccion').classList.remove('hidden-section');
+                document.getElementById('tabBtnDestruccion').classList.add('active');
+                renderizarDestruccion();
+            } else if (tab === 'usuarios' && rolActual === 'creador') {
+                document.getElementById('seccion-usuarios').classList.remove('hidden-section');
+                document.getElementById('tabBtnUsuarios').classList.add('active');
+                cargarUsuariosSistema();
             }
         }
 
-        function logout() {
-            localStorage.removeItem('finanzas_user');
-            location.reload();
-        }
+        async function cargarDatos() {
+            const { data: prodData } = await supabaseClient.from('productos_sistema').select('*').order('id', { ascending: false });
+            if (prodData) productos = prodData;
 
-        function unlockApp() {
-            document.getElementById('authScreen').classList.remove('active');
-            document.getElementById('mainAppContainer').classList.add('active');
-            document.getElementById('welcomeUser').textContent = `💼 Hola, ${currentUsername.toUpperCase()}`;
-            
-            if (currentUsername === 'kaviel') {
-                document.getElementById('adminTabBtn').style.display = 'block';
+            const { data: solData } = await supabaseClient.from('solicitudes_precio').select('*').order('id', { ascending: false });
+            if (solData) solicitudesPrecio = solData;
+
+            const { data: trasData } = await supabaseClient.from('productos_traslados').select('*').order('id', { ascending: false });
+            if (trasData) productosTraslados = trasData;
+
+            if (rolActual === 'encargado' || rolActual === 'creador') {
+                const { data: desData } = await supabaseClient.from('productos_destruccion').select('*').order('id', { ascending: false });
+                if (desData) productosDestruccion = desData;
+
+                const { data: histData } = await supabaseClient.from('historial_destruccion').select('*').order('id', { ascending: false }).limit(50);
+                if (histData) historialDestruccion = histData;
             }
 
-            fetchData();
-            if (currentUsername === 'kaviel') fetchUsersAdmin();
-        }
-
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-            
-            const tabsMap = { dashboard: 0, cards: 1, debts: 2, receivables: 3, goals: 4, salary: 5, admin: 6 };
-            document.querySelectorAll('.tab')[tabsMap[tabName]].classList.add('active');
-            document.getElementById(`view-${tabName}`).classList.add('active');
-            
-            if(tabName === 'dashboard') {
-                setTimeout(renderChart, 100);
-            }
-        }
-
-        function toggleCardSelector() {
-            const account = document.getElementById('account').value;
-            const cardSelectorGroup = document.getElementById('cardSelectorGroup');
-            const deferredGroup = document.getElementById('deferredGroup');
-            
-            const isCard = (account === 'Tarjeta de Crédito');
-            cardSelectorGroup.style.display = isCard ? 'block' : 'none';
-            deferredGroup.style.display = isCard ? 'block' : 'none';
-
-            if (isCard) populateCardDropdown();
-        }
-
-        function populateCardDropdown() {
-            const select = document.getElementById('specificCard');
-            select.innerHTML = '';
-            if (creditCards.length === 0) {
-                select.innerHTML = '<option value="">No hay tarjetas registradas</option>';
-                return;
-            }
-            creditCards.forEach(card => {
-                const opt = document.createElement('option');
-                opt.value = card.name;
-                opt.textContent = `💳 ${card.name} (Límite: $${card.limit})`;
-                select.appendChild(opt);
-            });
-        }
-
-        async function fetchData() {
-            document.getElementById('syncStatus').textContent = 'Sincronizando...';
-            
-            if (!navigator.onLine) {
-                document.getElementById('syncStatus').textContent = '⚠️ Modo Offline';
-                loadOfflineCache();
-                return;
+            if (rolActual === 'creador') {
+                cargarUsuariosSistema();
             }
 
-            try {
-                const [txRes, ccRes, debtRes, recRes, goalRes] = await Promise.all([
-                    _supabase.from('transactions').select('*').eq('username', currentUsername).order('created_at', { ascending: false }),
-                    _supabase.from('credit_cards').select('*').eq('username', currentUsername),
-                    _supabase.from('personal_debts').select('*').eq('username', currentUsername).order('created_at', { ascending: false }),
-                    _supabase.from('receivables').select('*').eq('username', currentUsername).order('created_at', { ascending: false }),
-                    _supabase.from('savings_goals').select('*').eq('username', currentUsername).order('created_at', { ascending: false })
-                ]);
+            renderizarTablas();
+            renderizarSolicitudesPrecio();
+            renderizarTraslados();
+            if (rolActual === 'encargado' || rolActual === 'creador') renderizarDestruccion();
+        }
 
-                transactions = txRes.data || [];
-                creditCards = ccRes.data || [];
-                personalDebts = debtRes.data || [];
-                receivables = recRes.data || [];
-                savingsGoals = goalRes.data || [];
-
-                localStorage.setItem('cache_tx_' + currentUsername, JSON.stringify(transactions));
-                localStorage.setItem('cache_cc_' + currentUsername, JSON.stringify(creditCards));
-                localStorage.setItem('cache_debt_' + currentUsername, JSON.stringify(personalDebts));
-                localStorage.setItem('cache_rec_' + currentUsername, JSON.stringify(receivables));
-                localStorage.setItem('cache_goal_' + currentUsername, JSON.stringify(savingsGoals));
-                
-                let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue_' + currentUsername) || '[]');
-                if (offlineQueue.length > 0) {
-                    document.getElementById('syncStatus').textContent = `🟡 Pendientes (${offlineQueue.length})`;
-                } else {
-                    document.getElementById('syncStatus').textContent = '🟢 En línea';
-                }
-
-                toggleCardSelector();
-                updateUI();
-                renderCards();
-                renderDebts();
-                renderReceivables();
-                renderGoals();
-                checkPaymentAlerts(); 
-            } catch (err) {
-                console.error("Error al sincronizar:", err);
-                document.getElementById('syncStatus').textContent = '⚠️ Modo Offline';
-                loadOfflineCache();
+        async function cargarUsuariosSistema() {
+            if (rolActual !== 'creador') return;
+            const { data } = await supabaseClient.from('perfiles_usuarios').select('*').order('id', { ascending: true });
+            if (data) {
+                listaUsuarios = data;
+                renderizarTablaUsuarios();
             }
         }
 
-        function loadOfflineCache() {
-            try {
-                transactions = JSON.parse(localStorage.getItem('cache_tx_' + currentUsername) || '[]');
-                creditCards = JSON.parse(localStorage.getItem('cache_cc_' + currentUsername) || '[]');
-                personalDebts = JSON.parse(localStorage.getItem('cache_debt_' + currentUsername) || '[]');
-                receivables = JSON.parse(localStorage.getItem('cache_rec_' + currentUsername) || '[]');
-                savingsGoals = JSON.parse(localStorage.getItem('cache_goal_' + currentUsername) || '[]');
-            } catch (e) {
-                transactions = [];
-                creditCards = [];
-                personalDebts = [];
-                receivables = [];
-                savingsGoals = [];
-            }
-            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue_' + currentUsername) || '[]');
-            if (offlineQueue.length > 0) {
-                document.getElementById('syncStatus').textContent = `🟡 Pendientes (${offlineQueue.length})`;
-            }
-            toggleCardSelector();
-            updateUI();
-            renderCards();
-            renderDebts();
-            renderReceivables();
-            renderGoals();
-            checkPaymentAlerts();
-        }
-
-        async function fetchUsersAdmin() {
-            if (!navigator.onLine) return;
-            const container = document.getElementById('usersAdminList');
-            const { data, error } = await _supabase.from('app_users').select('*');
-            if (error || !data) {
-                container.innerHTML = '<div class="empty-state">Error al cargar usuarios</div>';
-                return;
-            }
-            container.innerHTML = '';
-            data.forEach(u => {
-                const div = document.createElement('div');
-                div.className = 'user-box';
-                div.innerHTML = `
-                    <div class="user-header"><span>👤 ${u.username}</span> ${u.username !== 'kaviel' ? `<button class="delete-btn" onclick="deleteUserAdmin('${u.username}')">&times;</button>` : ''}</div>
-                    <div class="user-details">
-                        <div>Contraseña: <strong>${u.password}</strong></div>
-                        <div>Rol: <strong>${u.username === 'kaviel' ? 'Administrador' : 'Familiar'}</strong></div>
-                    </div>
+        function renderizarTablaUsuarios() {
+            const tbody = document.getElementById('lista-usuarios-sistema');
+            tbody.innerHTML = '';
+            listaUsuarios.forEach(u => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><b>${u.usuario}</b></td>
+                    <td><code>${u.clave}</code></td>
+                    <td><span class="badge">${u.rol.toUpperCase()}</span></td>
+                    <td>
+                        ${u.rol !== 'creador' ? `
+                            <button class="btn-edit" onclick="modificarUsuario(${u.id}, '${u.usuario}', '${u.clave}')">Modificar</button>
+                            <button class="btn-delete" onclick="eliminarUsuario(${u.id})">Eliminar</button>
+                        ` : '<span style="color:var(--text-muted); font-size:11px;">Protegido</span>'}
+                    </td>
                 `;
-                container.appendChild(div);
+                tbody.appendChild(tr);
             });
         }
 
-        async function saveUserAdmin() {
-            const username = document.getElementById('newUsername').value.trim().toLowerCase();
-            const password = document.getElementById('newPassword').value.trim();
+        document.getElementById('formCrearUsuario').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const usuario = document.getElementById('nuevoUsuario').value.trim().toLowerCase();
+            const clave = document.getElementById('nuevaClave').value.trim();
+            const rol = document.getElementById('nuevoRol').value;
 
-            if (!username || !password) {
-                alert("Completa el usuario y la contraseña.");
-                return;
-            }
-
-            const { error } = await _supabase.from('app_users').upsert([{ username, password }], { onConflict: 'username' });
+            const { error } = await supabaseClient.from('perfiles_usuarios').insert([{ usuario, clave, rol }]);
             if (error) {
-                alert("Error al guardar usuario: " + error.message);
-            } else {
-                alert(`¡Usuario "${username}" guardado con éxito!`);
-                document.getElementById('newUsername').value = '';
-                document.getElementById('newPassword').value = '';
-                fetchUsersAdmin();
-            }
-        }
-
-        async function deleteUserAdmin(username) {
-            if (confirm(`¿Estás seguro de eliminar al usuario "${username}"?`)) {
-                const { error } = await _supabase.from('app_users').delete().eq('username', username);
-                if (!error) fetchUsersAdmin();
-            }
-        }
-
-        async function addTransaction(type) {
-            const account = document.getElementById('account').value;
-            const category = document.getElementById('category').value;
-            const amountInput = document.getElementById('amount').value;
-            let amount = parseFloat(amountInput);
-            const note = document.getElementById('note').value;
-            let credit_card_name = null;
-
-            if (isNaN(amount) || amount <= 0) { 
-                alert("Ingresa un monto válido mayor a 0."); 
-                return; 
-            }
-
-            if (account === 'Tarjeta de Crédito') {
-                credit_card_name = document.getElementById('specificCard').value;
-                if (!credit_card_name || credit_card_name.includes('No hay tarjetas')) {
-                    alert("Selecciona una tarjeta de crédito válida.");
-                    return;
-                }
-                const months = parseInt(document.getElementById('deferredMonths').value);
-                if (months > 1) amount = amount / months;
-            }
-
-            const txData = { 
-                username: currentUsername,
-                type, 
-                account, 
-                category, 
-                amount, 
-                note, 
-                credit_card_name
-            };
-
-            if (!navigator.onLine) {
-                saveToOfflineQueue(txData);
+                alert("Error al crear usuario: " + error.message);
                 return;
             }
 
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-                const { error } = await _supabase.from('transactions').insert([txData]);
-                clearTimeout(timeoutId);
-
-                if (error) throw error;
-
-                document.getElementById('amount').value = '';
-                document.getElementById('note').value = '';
-                fetchData();
-            } catch (err) {
-                saveToOfflineQueue(txData, "📡 Red lenta o sin conexión: Movimiento guardado en pendientes.");
-            }
-        }
-
-        function saveToOfflineQueue(txData, customMsg) {
-            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue_' + currentUsername) || '[]');
-            offlineQueue.push(txData);
-            localStorage.setItem('offline_tx_queue_' + currentUsername, JSON.stringify(offlineQueue));
-            
-            document.getElementById('amount').value = '';
-            document.getElementById('note').value = '';
-            updateUI();
-            renderCards();
-            document.getElementById('syncStatus').textContent = `🟡 Pendientes (${offlineQueue.length})`;
-            alert(customMsg || "📡 Sin conexión: Movimiento guardado localmente.");
-        }
-
-        async function forceSync() {
-            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue_' + currentUsername) || '[]');
-            if (offlineQueue.length === 0) {
-                document.getElementById('syncStatus').textContent = '🟢 En línea';
-                alert("Todo está sincronizado. La aplicación está en línea.");
-                fetchData();
-                return;
-            }
-
-            document.getElementById('syncStatus').textContent = 'Sincronizando...';
-            
-            try {
-                const { error } = await _supabase.from('transactions').insert(offlineQueue);
-                
-                if (!error) {
-                    localStorage.removeItem('offline_tx_queue_' + currentUsername);
-                    document.getElementById('syncStatus').textContent = '🟢 En línea';
-                    alert("¡Movimientos sincronizados con éxito a la nube!");
-                    fetchData();
-                } else {
-                    document.getElementById('syncStatus').textContent = '⚠️ Error de red/base';
-                    alert("Error al sincronizar con Supabase: " + error.message);
-                }
-            } catch (err) {
-                document.getElementById('syncStatus').textContent = '⚠️ Error al sincronizar';
-                alert("Error de red al intentar sincronizar.");
-            }
-        }
-
-        window.addEventListener('online', async () => {
-            if (!currentUsername) return;
-            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue_' + currentUsername) || '[]');
-            if (offlineQueue.length > 0) {
-                document.getElementById('syncStatus').textContent = 'Sincronizando pendientes...';
-                
-                const { error } = await _supabase.from('transactions').insert(offlineQueue);
-                
-                if (!error) {
-                    localStorage.removeItem('offline_tx_queue_' + currentUsername);
-                    document.getElementById('syncStatus').textContent = '🟢 En línea';
-                    fetchData();
-                    alert("¡Conexión restablecida! Tus datos pendientes se han subido a la nube con éxito.");
-                } else {
-                    document.getElementById('syncStatus').textContent = '⚠️ Error al sincronizar';
-                }
-            } else {
-                fetchData();
-            }
+            e.target.reset();
+            mostrarToast('¡Usuario creado con éxito!');
+            cargarUsuariosSistema();
         });
 
-        window.addEventListener('offline', () => {
-            document.getElementById('syncStatus').textContent = '⚠️ Sin internet';
+        async function modificarUsuario(id, usuarioActualNombre, claveActual) {
+            const nuevoUser = prompt("Modificar nombre de usuario:", usuarioActualNombre);
+            if (nuevoUser === null) return;
+            const nuevaClave = prompt("Modificar clave laboral:", claveActual);
+            if (nuevaClave === null) return;
+
+            const { error } = await supabaseClient
+                .from('perfiles_usuarios')
+                .update({ usuario: nuevoUser.trim().toLowerCase(), clave: nuevaClave.trim() })
+                .eq('id', id);
+
+            if (error) {
+                alert("Error al actualizar: " + error.message);
+                return;
+            }
+
+            mostrarToast('¡Usuario actualizado con éxito!');
+            cargarUsuariosSistema();
+        }
+
+        async function eliminarUsuario(id) {
+            if (!confirm('¿Seguro que deseas eliminar este usuario?')) return;
+            await supabaseClient.from('perfiles_usuarios').delete().eq('id', id);
+            mostrarToast('¡Usuario eliminado!');
+            cargarUsuariosSistema();
+        }
+
+        // TIEMPO REAL
+        supabaseClient
+            .channel('cambios-globales')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'productos_sistema' }, () => cargarDatos())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes_precio' }, () => cargarDatos())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'productos_traslados' }, () => cargarDatos())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'productos_destruccion' }, () => cargarDatos())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'historial_destruccion' }, () => cargarDatos())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles_usuarios' }, () => { if(rolActual === 'creador') cargarUsuariosSistema(); })
+            .subscribe();
+
+        document.getElementById('productForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const codigo = document.getElementById('codigoBarraGuardar').value || document.getElementById('codigoEscaneado').value.trim() || ('CODE-' + Math.floor(100000 + Math.random() * 900000));
+            const nombre = document.getElementById('nombre').value.trim();
+            const categoria = document.getElementById('categoria').value;
+            const cantidad = parseInt(document.getElementById('cantidadProducto').value) || 1;
+            const fechaElab = document.getElementById('fechaElaboracion').value || null;
+            const fechaStr = document.getElementById('fechaPrincipal').value;
+            const ponerTraslado = document.getElementById('checkPonerTraslado').checked;
+
+            let fechaRetiro = new Date(fechaStr + 'T00:00:00');
+            if (categoria === 'legumbre_sin_cad') fechaRetiro.setDate(fechaRetiro.getDate() + 8);
+            else if (categoria === 'legumbre_con_cad') fechaRetiro.setDate(fechaRetiro.getDate() - 2);
+            else if (categoria === 'frio') fechaRetiro.setDate(fechaRetiro.getDate() - 5);
+            else fechaRetiro.setDate(fechaRetiro.getDate() - 3);
+
+            // Guardar en productos del sistema
+            await supabaseClient.from('productos_sistema').insert([{
+                codigo,
+                nombre,
+                categoria,
+                cantidad,
+                fecha_elaboracion: fechaElab,
+                fecha_principal: fechaStr,
+                fecha_retiro: fechaRetiro.toISOString().split('T')[0]
+            }]);
+
+            // Si marcó la casilla, guardar también en traslados
+            if (ponerTraslado) {
+                await supabaseClient.from('productos_traslados').insert([{
+                    codigo,
+                    nombre,
+                    cantidad,
+                    fecha_elaboracion: fechaElab,
+                    fecha_expiracion: fechaStr
+                }]);
+            }
+
+            e.target.reset();
+            document.getElementById('cantidadProducto').value = '1';
+            document.getElementById('codigoEscaneado').value = '';
+            document.getElementById('checkPonerTraslado').checked = false;
+            mostrarToast(ponerTraslado ? '¡Guardado y enviado a Traslados!' : '¡Guardado exitosamente!');
+            cargarDatos();
         });
 
-        async function saveCreditCard() {
-            const name = document.getElementById('ccName').value.trim();
-            const limit = parseFloat(document.getElementById('ccLimit').value);
-            const cut_day = parseInt(document.getElementById('ccCutDay').value);
-            const pay_day = parseInt(document.getElementById('ccPayDay').value);
+        document.getElementById('formSolicitudPrecio').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const codigo = document.getElementById('solCodigo').value.trim();
+            const nombre = document.getElementById('solNombre').value.trim() || 'Sin descripción';
+            const cantidad = parseInt(document.getElementById('solCantidad').value) || 1;
+            const fechaElab = document.getElementById('solElaboracion').value || null;
 
-            if(!name || isNaN(limit)) { alert("Completa los datos de la tarjeta."); return; }
+            await supabaseClient.from('solicitudes_precio').insert([{ codigo, nombre, cantidad, fecha_elaboracion: fechaElab }]);
+            e.target.reset();
+            document.getElementById('solCantidad').value = '1';
+            mostrarToast('¡Solicitud añadida!');
+            cargarDatos();
+        });
 
-            if (!navigator.onLine) {
-                alert("No se puede registrar tarjetas nuevas sin conexión a internet.");
-                return;
-            }
+        document.getElementById('formTraslado').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const codigo = document.getElementById('trasCodigo').value.trim();
+            const nombre = document.getElementById('trasNombre').value.trim();
+            const cantidad = parseInt(document.getElementById('trasCantidad').value) || 1;
+            const fechaElab = document.getElementById('trasElaboracion').value || null;
+            const fechaExp = document.getElementById('trasExpiracion').value;
 
-            const { error } = await _supabase.from('credit_cards').insert([{ username: currentUsername, name, "limit": limit, cut_day, pay_day }]);
-            if(error) {
-                alert("Error: " + error.message);
-            } else {
-                document.getElementById('ccName').value = '';
-                document.getElementById('ccLimit').value = '';
-                document.getElementById('ccCutDay').value = '';
-                document.getElementById('ccPayDay').value = '';
-                fetchData();
-            }
-        }
-
-        async function deleteCreditCard(id) {
-            if(!navigator.onLine) { alert("Acción no disponible offline."); return; }
-            if(confirm("¿Eliminar tarjeta?")) {
-                const { error } = await _supabase.from('credit_cards').delete().eq('id', id);
-                if(!error) fetchData();
-            }
-        }
-
-        async function savePersonalDebt() {
-            const creditor = document.getElementById('debtCreditor').value.trim();
-            const amount = parseFloat(document.getElementById('debtAmount').value);
-            const due_date = document.getElementById('debtDueDate').value || null;
-            const note = document.getElementById('debtNote').value;
-
-            if(!creditor || isNaN(amount)) { alert("Indica acreedor y monto."); return; }
-
-            if (!navigator.onLine) {
-                alert("No se puede registrar deudas nuevas sin conexión a internet.");
-                return;
-            }
-
-            const { error } = await _supabase.from('personal_debts').insert([{ 
-                username: currentUsername, 
-                creditor, 
-                original_amount: amount, 
-                remaining_amount: amount, 
-                due_date,
-                note,
-                payments_history: [] 
+            await supabaseClient.from('productos_traslados').insert([{
+                codigo,
+                nombre,
+                cantidad,
+                fecha_elaboracion: fechaElab,
+                fecha_expiracion: fechaExp
             }]);
-            
-            if(error) {
-                alert("Error: " + error.message);
+
+            e.target.reset();
+            document.getElementById('trasCantidad').value = '1';
+            mostrarToast('¡Producto registrado para traslado!');
+            cargarDatos();
+        });
+
+        async function eliminarTraslado(id) {
+            await supabaseClient.from('productos_traslados').delete().eq('id', id);
+            mostrarToast('Registro eliminado');
+            cargarDatos();
+        }
+
+        function alternarOcultarUltimoDigito() {
+            ocultarUltimoDigitoGlobal = !ocultarUltimoDigitoGlobal;
+            const btn = document.getElementById('btnOcultarDigito');
+            if (ocultarUltimoDigitoGlobal) {
+                btn.style.background = '#047857';
+                btn.textContent = "👁️ Mostrar Último Dígito";
+                mostrarToast("Último dígito ocultado en las etiquetas");
             } else {
-                document.getElementById('debtCreditor').value = '';
-                document.getElementById('debtAmount').value = '';
-                document.getElementById('debtDueDate').value = '';
-                document.getElementById('debtNote').value = '';
-                fetchData();
+                btn.style.background = '#0284c7';
+                btn.textContent = "🙈 Ocultar Último Dígito";
+                mostrarToast("Mostrando código completo");
             }
+            renderizarSolicitudesPrecio();
         }
 
-        async function makeDebtPayment(id, currentRemaining, currentHistory, currentOriginal) {
-            if(!navigator.onLine) { alert("Acción no disponible offline."); return; }
-            const paymentInput = prompt(`Abonar a deuda (Pendiente: $${currentRemaining.toFixed(2)})`);
-            if (paymentInput === null) return;
-            const paymentAmount = parseFloat(paymentInput);
-            if (isNaN(paymentAmount) || paymentAmount <= 0) return;
-
-            const noteInput = prompt("Nota o descripción para este abono (opcional):", "Abono");
-            const newRemaining = currentRemaining - paymentAmount;
-
-            let history = currentHistory || [];
-            if (!Array.isArray(history)) history = [];
-
-            history.push({
-                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                type: 'abono',
-                amount: paymentAmount,
-                note: noteInput || 'Abono'
-            });
-
-            if (newRemaining <= 0) {
-                if (confirm("¿Saldar y eliminar esta deuda por completo?")) {
-                    await _supabase.from('personal_debts').delete().eq('id', id);
-                    fetchData();
-                    return;
-                }
-            }
-
-            const { error } = await _supabase.from('personal_debts').update({ 
-                remaining_amount: Math.max(0, newRemaining),
-                payments_history: history
-            }).eq('id', id);
-
-            if (error) {
-                alert("Error al registrar abono: " + error.message);
-            } else {
-                fetchData();
-            }
-        }
-
-        async function increaseDebt(id, currentRemaining, currentOriginal, currentHistory) {
-            if(!navigator.onLine) { alert("Acción no disponible offline."); return; }
-            const increaseInput = prompt(`¿Cuánto más te prestó esta persona? (Monto actual pendiente: $${currentRemaining.toFixed(2)})`);
-            if (increaseInput === null) return;
-            const increaseAmount = parseFloat(increaseInput);
-            if (isNaN(increaseAmount) || increaseAmount <= 0) return;
-
-            const noteInput = prompt("Nota o motivo de este nuevo préstamo (opcional):", "Préstamo adicional");
-            const newRemaining = currentRemaining + increaseAmount;
-            const newOriginal = Number(currentOriginal) + increaseAmount;
-
-            let history = currentHistory || [];
-            if (!Array.isArray(history)) history = [];
-
-            history.push({
-                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                type: 'aumento',
-                amount: increaseAmount,
-                note: noteInput || 'Préstamo adicional'
-            });
-
-            const { error } = await _supabase.from('personal_debts').update({ 
-                original_amount: newOriginal,
-                remaining_amount: newRemaining,
-                payments_history: history
-            }).eq('id', id);
-
-            if (error) {
-                alert("Error al actualizar la deuda: " + error.message);
-            } else {
-                fetchData();
-            }
-        }
-
-        async function deletePersonalDebt(id) {
-            if(!navigator.onLine) { alert("Acción no disponible offline."); return; }
-            if(confirm("¿Eliminar deuda?")) {
-                const { error } = await _supabase.from('personal_debts').delete().eq('id', id);
-                if(!error) fetchData();
-            }
-        }
-
-        async function saveReceivableDebt() {
-            const debtor = document.getElementById('receivableDebtor').value.trim();
-            const amount = parseFloat(document.getElementById('receivableAmount').value);
-            const due_date = document.getElementById('receivableDueDate').value || null;
-            const note = document.getElementById('receivableNote').value;
-
-            if(!debtor || isNaN(amount) || amount <= 0) { alert("Indica el nombre del deudor y un monto válido."); return; }
-
-            if (!navigator.onLine) {
-                alert("No se puede registrar cobros nuevos sin conexión a internet.");
+        async function imprimirYBorrarTodosPrecios() {
+            if (solicitudesPrecio.length === 0) {
+                alert("No hay solicitudes pendientes.");
                 return;
             }
+            if (!confirm("¿Deseas marcar todas las solicitudes como impresas y borrarlas de la lista?")) return;
 
-            const { error } = await _supabase.from('receivables').insert([{ 
-                username: currentUsername, 
-                debtor, 
-                original_amount: amount, 
-                remaining_amount: amount, 
-                due_date,
-                note,
-                payments_history: [] 
+            for (let s of solicitudesPrecio) {
+                await supabaseClient.from('solicitudes_precio').delete().eq('id', s.id);
+            }
+            mostrarToast('¡Todas las etiquetas se marcaron como impresas!');
+            cargarDatos();
+        }
+
+        document.getElementById('formDestruccion').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const codigo = document.getElementById('desCodigo').value.trim();
+            const nombreProd = document.getElementById('desNombre').value.trim();
+            const cantidad = parseInt(document.getElementById('desCantidad').value) || 1;
+            const fechaElab = document.getElementById('desElaboracion').value || null;
+
+            await supabaseClient.from('productos_destruccion').insert([{
+                codigo: codigo,
+                nombre: nombreProd,
+                cantidad: cantidad,
+                cantidad_original: cantidad,
+                fecha_elaboracion: fechaElab,
+                usuario: usuarioActual || 'desconocido'
             }]);
+
+            e.target.reset();
+            document.getElementById('desCantidad').value = '1';
+            mostrarToast('¡Dejado pendiente para destrucción!');
+            cargarDatos();
+        });
+
+        async function eliminarProducto(id) { await supabaseClient.from('productos_sistema').delete().eq('id', id); cargarDatos(); }
+        async function eliminarSolicitudPrecio(id) { await supabaseClient.from('solicitudes_precio').delete().eq('id', id); cargarDatos(); }
+        
+        async function procesarDestruccionParcial(id, codigo, nombreProd, cantidadActual) {
+            let inputCantidad = prompt(`¿Cuántas unidades deseas destruir? (Pendientes: ${cantidadActual})`, cantidadActual);
+            if (inputCantidad === null) return;
             
-            if(error) {
-                alert("Error: " + error.message);
-            } else {
-                document.getElementById('receivableDebtor').value = '';
-                document.getElementById('receivableAmount').value = '';
-                document.getElementById('receivableDueDate').value = '';
-                document.getElementById('receivableNote').value = '';
-                fetchData();
+            let aDestruir = parseInt(inputCantidad);
+            if (isNaN(aDestruir) || aDestruir <= 0) {
+                alert("Cantidad inválida.");
+                return;
             }
+
+            if (aDestruir > cantidadActual) {
+                alert("No puedes destruir más de la cantidad pendiente.");
+                return;
+            }
+
+            await supabaseClient.from('historial_destruccion').insert([{
+                codigo: codigo,
+                nombre: nombreProd,
+                cantidad: aDestruir,
+                usuario: usuarioActual || 'desconocido'
+            }]);
+
+            let restante = cantidadActual - aDestruir;
+
+            if (restante > 0) {
+                await supabaseClient.from('productos_destruccion').update({ cantidad: restante }).eq('id', id);
+                mostrarToast(`¡Se destruyeron ${aDestruir}! Quedan ${restante} pendientes.`);
+            } else {
+                await supabaseClient.from('productos_destruccion').delete().eq('id', id);
+                mostrarToast(`¡Lote totalmente destruido!`);
+            }
+
+            cargarDatos();
         }
 
-        async function makeReceivablePayment(id, currentRemaining, currentHistory) {
-            if(!navigator.onLine) { alert("Acción no disponible offline."); return; }
-            const paymentInput = prompt(`Registrar abono recibido (Pendiente de cobro: $${currentRemaining.toFixed(2)})`);
-            if (paymentInput === null) return;
-            const paymentAmount = parseFloat(paymentInput);
-            if (isNaN(paymentAmount) || paymentAmount <= 0) return;
+        function renderizarSolicitudesPrecio() {
+            const grid = document.getElementById('gridSolicitudesPrecio');
+            grid.innerHTML = '';
+            document.getElementById('contadorSolicitudes').textContent = solicitudesPrecio.length;
+            document.getElementById('textoContadorPrecios').textContent = `Tienes ${solicitudesPrecio.length} solicitudes pendientes`;
 
-            const noteInput = prompt("Nota o descripción para este cobro (opcional):", "Abono recibido");
-            const newRemaining = currentRemaining - paymentAmount;
-
-            let history = currentHistory || [];
-            if (!Array.isArray(history)) history = [];
-
-            history.push({
-                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                type: 'abono',
-                amount: paymentAmount,
-                note: noteInput || 'Abono recibido'
-            });
-
-            if (newRemaining <= 0) {
-                if (confirm("¿Este préstamo ha sido pagado por completo? Se eliminará de la lista de pendientes.")) {
-                    await _supabase.from('receivables').delete().eq('id', id);
-                    fetchData();
-                    return;
+            solicitudesPrecio.forEach(s => {
+                let codigoMostrar = s.codigo;
+                if (ocultarUltimoDigitoGlobal && codigoMostrar.length > 1) {
+                    codigoMostrar = codigoMostrar.slice(0, -1);
                 }
-            }
 
-            const { error } = await _supabase.from('receivables').update({ 
-                remaining_amount: Math.max(0, newRemaining),
-                payments_history: history
-            }).eq('id', id);
-
-            if (error) {
-                alert("Error al registrar abono: " + error.message);
-            } else {
-                fetchData();
-            }
+                const div = document.createElement('div');
+                div.className = 'barcode-item';
+                div.innerHTML = `
+                    <div style="font-size: 13px; font-weight: bold; color: var(--text-color);">${s.nombre || 'Producto'}</div>
+                    <div style="font-size: 12px; color: var(--primary-color); font-weight: 600;">Cantidad solicitada: ${s.cantidad}</div>
+                    ${s.fecha_elaboracion ? `<div style="font-size: 11px; color: var(--text-muted);">Elab: ${s.fecha_elaboracion}</div>` : ''}
+                    <div style="font-size: 11px; color: var(--text-muted);">Cod: ${codigoMostrar} ${ocultarUltimoDigitoGlobal ? '(Sin último dígito)' : ''}</div>
+                    <div class="barcode-box"><svg id="sol-barcode-${s.id}"></svg></div>
+                    <button onclick="eliminarSolicitudPrecio(${s.id})" style="background: #ef4444; color: white; border: none; padding: 8px; border-radius: 8px; width: 100%; cursor:pointer; font-weight:bold;">Impreso / Eliminar</button>
+                `;
+                grid.appendChild(div);
+                
+                setTimeout(() => {
+                    try {
+                        JsBarcode(`#sol-barcode-${s.id}`, codigoMostrar, { format: "CODE128", width: 1.5, height: 40, displayValue: true });
+                    } catch (err) {}
+                }, 100);
+            });
         }
 
-        async function increaseReceivable(id, currentRemaining, currentOriginal, currentHistory) {
-            if(!navigator.onLine) { alert("Acción no disponible offline."); return; }
-            const increaseInput = prompt(`¿Cuánto más le prestaste a esta persona? (Pendiente actual: $${currentRemaining.toFixed(2)})`);
-            if (increaseInput === null) return;
-            const increaseAmount = parseFloat(increaseInput);
-            if (isNaN(increaseAmount) || increaseAmount <= 0) return;
+        function renderizarTraslados() {
+            const tbody = document.getElementById('lista-traslados-sistema');
+            tbody.innerHTML = '';
+            document.getElementById('contadorTraslados').textContent = productosTraslados.length;
+            document.getElementById('textoContadorTraslados').textContent = `Tienes ${productosTraslados.length} productos en seguimiento`;
 
-            const noteInput = prompt("Nota o motivo de este nuevo préstamo (opcional):", "Préstamo adicional");
-            const newRemaining = currentRemaining + increaseAmount;
-            const newOriginal = Number(currentOriginal) + increaseAmount;
+            if (productosTraslados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:12px;">No hay productos registrados para traslado.</td></tr>`;
+                return;
+            }
 
-            let history = currentHistory || [];
-            if (!Array.isArray(history)) history = [];
+            const hoy = new Date();
+            hoy.setHours(0,0,0,0);
 
-            history.push({
-                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                type: 'aumento',
-                amount: increaseAmount,
-                note: noteInput || 'Préstamo adicional'
+            productosTraslados.forEach(t => {
+                const expDate = new Date(t.fecha_expiracion + 'T00:00:00');
+                const diffTime = expDate - hoy;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                let badgeEstado = '';
+                if (diffDays < 0) {
+                    badgeEstado = `<span class="badge-status bg-red">¡VENCIDO (${Math.abs(diffDays)}d atrás)!</span>`;
+                } else if (diffDays <= 20) {
+                    badgeEstado = `<span class="badge-status bg-amber">🚨 ¡TRASLADAR! (Quedan ${diffDays}d)</span>`;
+                } else {
+                    badgeEstado = `<span class="badge-status bg-green">Estable (${diffDays}d restantes)</span>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><b>${t.nombre}</b><br><small style="color:var(--text-muted);">Cod: ${t.codigo}</small></td>
+                    <td><b>${t.cantidad}</b></td>
+                    <td>${t.fecha_elaboracion ? t.fecha_elaboracion : '<span style="color:var(--text-muted)">N/A</span>'}</td>
+                    <td style="font-weight:bold;">${t.fecha_expiracion}</td>
+                    <td>${badgeEstado}</td>
+                    <td><button class="btn-delete" onclick="eliminarTraslado(${t.id})">Borrar</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderizarDestruccion() {
+            if (rolActual !== 'encargado' && rolActual !== 'creador') return;
+            
+            const grid = document.getElementById('gridDestruccion');
+            grid.innerHTML = '';
+            document.getElementById('contadorDestruccion').textContent = productosDestruccion.length;
+            document.getElementById('textoContadorDestruccion').textContent = `Tienes ${productosDestruccion.length} registros pendientes`;
+
+            productosDestruccion.forEach(d => {
+                const div = document.createElement('div');
+                div.className = 'barcode-item';
+                div.innerHTML = `
+                    <div style="font-size: 13px; font-weight: bold; color: var(--text-color);">${d.nombre || 'Sin descripción'}</div>
+                    <div style="font-size: 12px; color: var(--primary-color); font-weight: 600;">Cantidad pendiente: ${d.cantidad}</div>
+                    ${d.fecha_elaboracion ? `<div style="font-size: 11px; color: var(--text-muted);">Elab: ${d.fecha_elaboracion}</div>` : ''}
+                    <div style="font-size: 11px; color: var(--text-muted);">Cod: ${d.codigo} | Creado por: <b>${d.usuario || 'N/A'}</b></div>
+                    <div class="barcode-box"><svg id="des-barcode-${d.id}"></svg></div>
+                    <button onclick="procesarDestruccionParcial(${d.id}, '${d.codigo}', '${d.nombre || ''}', ${d.cantidad})" style="background: #10b981; color: white; border: none; padding: 8px; border-radius: 8px; width: 100%; cursor:pointer; font-weight:bold;">Destruir Parcial / Total</button>
+                `;
+                grid.appendChild(div);
+                setTimeout(() => {
+                    try {
+                        JsBarcode(`#des-barcode-${d.id}`, d.codigo, { format: "CODE128", width: 1.5, height: 40, displayValue: true });
+                    } catch (e) {}
+                }, 100);
             });
 
-            const { error } = await _supabase.from('receivables').update({ 
-                original_amount: newOriginal,
-                remaining_amount: newRemaining,
-                payments_history: history
-            }).eq('id', id);
-
-            if (error) {
-                alert("Error al actualizar el cobro: " + error.message);
+            const tbodyHistorial = document.getElementById('lista-historial-destruccion');
+            tbodyHistorial.innerHTML = '';
+            if (historialDestruccion.length === 0) {
+                tbodyHistorial.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:10px;">No hay registros en el historial.</td></tr>`;
             } else {
-                fetchData();
-            }
-        }
-
-        async function deleteReceivable(id) {
-            if(!navigator.onLine) { alert("Acción no disponible offline."); return; }
-            if(confirm("¿Eliminar este registro de cobro?")) {
-                const { error } = await _supabase.from('receivables').delete().eq('id', id);
-                if(!error) fetchData();
-            }
-        }
-
-        async function saveSavingsGoal() {
-            const goal_name = document.getElementById('goalName').value.trim();
-            const target_amount = parseFloat(document.getElementById('goalTarget').value);
-
-            if (!goal_name || isNaN(target_amount) || target_amount <= 0) {
-                alert("Completa el nombre y un monto objetivo válido.");
-                return;
-            }
-
-            if (!navigator.onLine) {
-                alert("Acción disponible únicamente en línea.");
-                return;
-            }
-
-            const { error } = await _supabase.from('savings_goals').insert([{ username: currentUsername, goal_name, target_amount, current_amount: 0 }]);
-            if (error) {
-                alert("Error al guardar meta: " + error.message);
-            } else {
-                document.getElementById('goalName').value = '';
-                document.getElementById('goalTarget').value = '';
-                fetchData();
-            }
-        }
-
-        async function addAmountToGoal(id, currentAmount, targetAmount) {
-            if(!navigator.onLine) { alert("Acción no disponible offline."); return; }
-            const input = prompt(`Aportar a meta (Actual: $${currentAmount.toFixed(2)} / Objetivo: $${targetAmount.toFixed(2)})`);
-            if (input === null) return;
-            const addVal = parseFloat(input);
-            if (isNaN(addVal) || addVal <= 0) return;
-
-            const newAmount = currentAmount + addVal;
-            const { error } = await _supabase.from('savings_goals').update({ current_amount: newAmount }).eq('id', id);
-            if (!error) fetchData();
-        }
-
-        async function deleteSavingsGoal(id) {
-            if(!navigator.onLine) { alert("Acción no disponible offline."); return; }
-            if(confirm("¿Eliminar esta meta?")) {
-                const { error } = await _supabase.from('savings_goals').delete().eq('id', id);
-                if(!error) fetchData();
-            }
-        }
-
-        async function applySalary() {
-            const amount = parseFloat(document.getElementById('salaryAmount').value);
-            const account = document.getElementById('salaryAccount').value;
-            if(isNaN(amount) || amount <= 0) { alert("Ingresa un sueldo válido"); return; }
-
-            const txData = { username: currentUsername, type: 'Ingreso', account, category: 'Salario', amount, note: 'Sueldo mensual' };
-
-            if (!navigator.onLine) {
-                saveToOfflineQueue(txData, "📡 Sin conexión: Sueldo guardado localmente.");
-                switchTab('dashboard');
-                return;
-            }
-
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-                const { error } = await _supabase.from('transactions').insert([txData]);
-                clearTimeout(timeoutId);
-
-                if (error) throw error;
-                switchTab('dashboard');
-                fetchData();
-            } catch (err) {
-                saveToOfflineQueue(txData, "📡 Red lenta o sin conexión: Sueldo guardado en pendientes.");
-                switchTab('dashboard');
-            }
-        }
-
-        async function deleteTransaction(id) {
-            if (id === undefined || id === null) {
-                alert("Este movimiento local pendiente se sincronizará al reconectar y podrá ser eliminado después.");
-                return;
-            }
-            if(!navigator.onLine) { alert("No se puede eliminar de la base de datos sin conexión a internet."); return; }
-            if (confirm("¿Eliminar movimiento?")) {
-                const { error } = await _supabase.from('transactions').delete().eq('id', id);
-                if (!error) fetchData();
-            }
-        }
-
-        function updateUI() {
-            const list = document.getElementById('transactionList');
-            list.innerHTML = '';
-            let total = 0, cashTotal = 0, bankTotal = 0, cryptoTotal = 0, ccDebtTotal = 0;
-
-            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue_' + currentUsername) || '[]');
-            let combinedTransactions = [...offlineQueue.slice().reverse(), ...transactions];
-
-            if (combinedTransactions.length === 0) {
-                list.innerHTML = '<div class="empty-state">No hay movimientos</div>';
-            } else {
-                combinedTransactions.forEach((t) => {
-                    const amt = Number(t.amount);
-                    if (t.type === 'Ingreso') {
-                        total += amt;
-                        if (t.account === 'Efectivo') cashTotal += amt;
-                        else if (t.account === 'Banco') bankTotal += amt;
-                        else if (t.account === 'Criptomonedas') cryptoTotal += amt;
-                    } else {
-                        total -= amt;
-                        if (t.account === 'Efectivo') cashTotal -= amt;
-                        else if (t.account === 'Banco') bankTotal -= amt;
-                        else if (t.account === 'Criptomonedas') cryptoTotal -= amt;
-                        else if (t.account === 'Tarjeta de Crédito') ccDebtTotal += amt;
-                    }
-
-                    const cardTag = t.credit_card_name ? ` <span style="color:var(--warning);">[${t.credit_card_name}]</span>` : '';
-                    const isPending = t.id === undefined;
-                    const pendingTag = isPending ? ` <span style="color:var(--warning); font-size:10px;">(Pendiente 📡)</span>` : '';
-                    
-                    const li = document.createElement('li');
-                    li.className = 'transaction-item';
-                    li.innerHTML = `
-                        <div>
-                            <strong>${t.category}</strong>${cardTag}${pendingTag} <span style="font-size:11px; color:var(--text-muted);">(${t.account})</span><br>
-                            <small style="color:var(--text-muted);">${t.note || 'Sin nota'}</small>
-                        </div>
-                        <div style="text-align: right; display: flex; align-items: center; gap: 6px;">
-                            <span style="font-weight: bold; color: ${t.type === 'Ingreso' ? 'var(--accent)' : 'var(--danger)'}">
-                                ${t.type === 'Ingreso' ? '+' : '-'}$${amt.toFixed(2)}
-                            </span>
-                            <button class="delete-btn" onclick="deleteTransaction(${t.id})">&times;</button>
-                        </div>
+                historialDestruccion.forEach(h => {
+                    const fechaFormateada = new Date(h.fecha_hora).toLocaleString();
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><b>${h.nombre || 'Producto'}</b><br><small style="color:var(--text-muted);">Cod: ${h.codigo}</small></td>
+                        <td><span style="color:var(--primary-color); font-weight:bold;">${h.cantidad}</span></td>
+                        <td><code>${h.usuario}</code></td>
+                        <td style="font-size:11px; color:var(--text-muted);">${fechaFormateada}</td>
                     `;
-                    list.appendChild(li);
+                    tbodyHistorial.appendChild(tr);
                 });
             }
-
-            document.getElementById('totalBalance').textContent = `$${total.toFixed(2)}`;
-            document.getElementById('cashBalance').textContent = `$${Math.max(0, cashTotal).toFixed(2)}`;
-            document.getElementById('bankBalance').textContent = `$${Math.max(0, bankTotal).toFixed(2)}`;
-            document.getElementById('cryptoBalance').textContent = `$${Math.max(0, cryptoTotal).toFixed(2)}`;
-            document.getElementById('ccDebtBalance').textContent = `$${ccDebtTotal.toFixed(2)}`;
-            document.getElementById('txCount').textContent = `${combinedTransactions.length} regs`;
-
-            renderChart();
         }
 
-        function renderChart() {
-            const ctx = document.getElementById('expenseChart');
-            if (!ctx) return;
-
-            let categoryTotals = {};
-            let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue_' + currentUsername) || '[]');
-            let combined = [...offlineQueue, ...transactions];
-
-            combined.forEach(t => {
-                if (t.type === 'Gasto') {
-                    categoryTotals[t.category] = (categoryTotals[t.category] || 0) + Number(t.amount);
-                }
+        function renderizarTablas() {
+            ['frio', 'legumbre_sin_cad', 'legumbre_con_cad', 'pasillo1', 'pasillo2', 'pasillo3', 'pasillo5', 'urgentes'].forEach(cat => {
+                const el = document.getElementById(`lista-${cat}`);
+                if (el) el.innerHTML = '';
             });
 
-            const labels = Object.keys(categoryTotals);
-            const data = Object.values(categoryTotals);
+            const hoy = new Date().toISOString().split('T')[0];
+            const filtro = document.getElementById('inputBuscador').value.toLowerCase().trim();
+            const filtrados = productos.filter(p => p.nombre.toLowerCase().includes(filtro) || p.codigo.toLowerCase().includes(filtro));
+            const tbodyUrgentes = document.getElementById('lista-urgentes');
+            let urgentesCount = 0;
 
-            if (expenseChartInstance) {
-                expenseChartInstance.destroy();
+            filtrados.forEach(p => {
+                let badge = p.fecha_retiro < hoy ? `<span class="badge-status bg-red">¡URGENTE!</span>` : (p.fecha_retiro === hoy ? `<span class="badge-status bg-amber">Retirar Hoy</span>` : `<span class="badge-status bg-green">Vigente</span>`);
+                const cant = p.cantidad || 1;
+                const elabStr = p.fecha_elaboracion || '<span style="color:var(--text-muted)">N/A</span>';
+
+                if (p.fecha_retiro < hoy && tbodyUrgentes) {
+                    urgentesCount++;
+                    const trU = document.createElement('tr');
+                    trU.innerHTML = `<td><div><b>${p.nombre}</b></div><small>Cod: ${p.codigo}</small></td><td><b>${cant}</b></td><td>${p.categoria}</td><td>${elabStr}</td><td style="color:red; font-weight:bold;">${p.fecha_retiro}</td><td>${badge}</td><td><button class="btn-delete" onclick="eliminarProducto(${p.id})">Borrar</button></td>`;
+                    tbodyUrgentes.appendChild(trU);
+                }
+
+                const tbody = document.getElementById(`lista-${p.categoria}`);
+                if (tbody) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td><div><b>${p.nombre}</b></div><small>Cod: ${p.codigo}</small></td><td><b>${cant}</b></td><td>${elabStr}</td><td>${p.fecha_principal}</td><td style="color:var(--primary-color); font-weight:bold;">${p.fecha_retiro}</td><td>${badge}</td><td><button class="btn-delete" onclick="eliminarProducto(${p.id})">Borrar</button></td>`;
+                    tbody.appendChild(tr);
+                }
+            });
+            if (tbodyUrgentes && urgentesCount === 0) tbodyUrgentes.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:10px;">Todo al día.</td></tr>`;
+        }
+
+        document.getElementById('inputBuscador').addEventListener('input', renderizarTablas);
+
+        // LECTOR UNIVERSAL COMPATIBLE CON IPHONE Y ANDROID
+        function detenerCamaraUniversal() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => {
+                    html5QrCode.clear();
+                }).catch(err => {});
             }
+            ['readerVencimientos', 'readerSolicitudes', 'readerDestruccion'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+            ['btnCerrarCam', 'btnCerrarCamSolicitud', 'btnCerrarCamDestruccion'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden-section');
+            });
+        }
 
-            expenseChartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels.length > 0 ? labels : ['Sin Gastos'],
-                    datasets: [{
-                        data: data.length > 0 ? data : [1],
-                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#64748b']
-                    }]
+        function iniciarEscaneoUniversal(elementId, btnCerrarId, onSuccessCallback) {
+            detenerCamaraUniversal();
+
+            const readerDiv = document.getElementById(elementId);
+            const btnCerrar = document.getElementById(btnCerrarId);
+
+            readerDiv.style.display = 'block';
+            btnCerrar.classList.remove('hidden-section');
+
+            html5QrCode = new Html5Qrcode(elementId);
+            
+            const config = { fps: 15, qrbox: { width: 260, height: 120 } };
+
+            html5QrCode.start(
+                { facingMode: "environment" },
+                config,
+                (decodedText) => {
+                    detenerCamaraUniversal();
+                    onSuccessCallback(decodedText);
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom', labels: { color: '#f8fafc', font: { size: 10 } } }
-                    }
-                }
+                (errorMessage) => {}
+            ).catch(err => {
+                alert("No se pudo iniciar la cámara. Asegúrate de dar permisos de cámara en tu navegador.");
+                detenerCamaraUniversal();
             });
         }
 
-        function renderCards() {
-            const container = document.getElementById('creditCardsList');
-            container.innerHTML = '';
-            if(creditCards.length === 0) { container.innerHTML = '<div class="empty-state">Sin tarjetas</div>'; return; }
-
-            creditCards.forEach(card => {
-                let currentSpent = 0;
-                transactions.forEach(t => {
-                    if(t.account === 'Tarjeta de Crédito' && t.credit_card_name === card.name) currentSpent += Number(t.amount);
-                });
-
-                let offlineQueue = JSON.parse(localStorage.getItem('offline_tx_queue_' + currentUsername) || '[]');
-                offlineQueue.forEach(t => {
-                    if(t.account === 'Tarjeta de Crédito' && t.credit_card_name === card.name) currentSpent += Number(t.amount);
-                });
-
-                const div = document.createElement('div');
-                div.className = 'credit-card-box';
-                div.innerHTML = `
-                    <div class="cc-header"><span>💳 ${card.name}</span><button class="delete-btn" onclick="deleteCreditCard(${card.id})">&times;</button></div>
-                    <div class="cc-details">
-                        <div>Consumido: <strong style="color:var(--danger);">$${currentSpent.toFixed(2)}</strong></div>
-                        <div>Límite: <strong>$${card.limit}</strong></div>
-                        <div>Corte: <strong>Día ${card.cut_day}</strong></div>
-                        <div>Pago máx: <strong style="color:var(--warning);">Día ${card.pay_day}</strong></div>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        function renderDebts() {
-            const container = document.getElementById('personalDebtsList');
-            container.innerHTML = '';
-            let totalRemainingDebt = 0;
-            if(personalDebts.length === 0) { container.innerHTML = '<div class="empty-state">Sin deudas</div>'; document.getElementById('totalDebtAmount').textContent = '$0.00'; return; }
-
-            personalDebts.forEach(debt => {
-                const remaining = Number(debt.remaining_amount);
-                const original = Number(debt.original_amount);
-                totalRemainingDebt += remaining;
-                
-                let dueDateHTML = debt.due_date ? `<div>Vence: <strong style="color:var(--warning);">${debt.due_date}</strong></div>` : '<div>Vence: <strong>Sin fecha</strong></div>';
-
-                let historyHTML = '';
-                let history = debt.payments_history;
-                if (typeof history === 'string') {
-                    try { history = JSON.parse(history); } catch(e) { history = []; }
-                }
-
-                if (Array.isArray(history) && history.length > 0) {
-                    let items = history.map(h => {
-                        const isAumento = h.type === 'aumento';
-                        const sign = isAumento ? '+' : '-';
-                        const color = isAumento ? 'var(--warning)' : 'var(--danger)';
-                        const label = isAumento ? 'Préstamo Extra' : 'Abono';
-                        return `<li><span>📅 ${h.date} - ${h.note} (${label})</span> <strong style="color:${color};">${sign}$${Number(h.amount).toFixed(2)}</strong></li>`;
-                    }).join('');
-                    
-                    historyHTML = `
-                        <div class="payment-history">
-                            <strong>Historial de Movimientos:</strong>
-                            <ul>${items}</ul>
-                        </div>
-                    `;
-                }
-
-                const div = document.createElement('div');
-                div.className = 'debt-box';
-                div.innerHTML = `
-                    <div class="debt-header">
-                        <span>👤 ${debt.creditor}</span>
-                        <div style="display: flex; gap: 4px;">
-                            <button class="add-btn" onclick="increaseDebt(${debt.id}, ${remaining}, ${original}, ${JSON.stringify(history || []).replace(/"/g, '&quot;')})">Prestar +</button>
-                            <button class="pay-btn" onclick="makeDebtPayment(${debt.id}, ${remaining}, ${JSON.stringify(history || []).replace(/"/g, '&quot;')}, ${original})">Abonar</button>
-                            <button class="delete-btn" onclick="deletePersonalDebt(${debt.id})">&times;</button>
-                        </div>
-                    </div>
-                    <div class="debt-details">
-                        <div>Pendiente: <strong style="color:var(--danger);">$${remaining.toFixed(2)}</strong></div>
-                        <div>Original: <strong>$${original.toFixed(2)}</strong></div>
-                        ${dueDateHTML}
-                        <div>Motivo: <strong>${debt.note || 'Sin nota'}</strong></div>
-                    </div>
-                    ${historyHTML}
-                `;
-                container.appendChild(div);
-            });
-            document.getElementById('totalDebtAmount').textContent = `$${totalRemainingDebt.toFixed(2)}`;
-        }
-
-        function renderReceivables() {
-            const container = document.getElementById('receivablesList');
-            container.innerHTML = '';
-            let totalRemainingReceivable = 0;
-            if(receivables.length === 0) { container.innerHTML = '<div class="empty-state">No hay cobros pendientes</div>'; document.getElementById('totalReceivableAmount').textContent = '$0.00'; return; }
-
-            receivables.forEach(rec => {
-                const remaining = Number(rec.remaining_amount);
-                const original = Number(rec.original_amount);
-                totalRemainingReceivable += remaining;
-                
-                let dueDateHTML = rec.due_date ? `<div>Cobro máx: <strong style="color:var(--accent);">${rec.due_date}</strong></div>` : '<div>Cobro máx: <strong>Sin fecha</strong></div>';
-
-                let historyHTML = '';
-                let history = rec.payments_history;
-                if (typeof history === 'string') {
-                    try { history = JSON.parse(history); } catch(e) { history = []; }
-                }
-
-                if (Array.isArray(history) && history.length > 0) {
-                    let items = history.map(h => {
-                        const isAumento = h.type === 'aumento';
-                        const sign = isAumento ? '+' : '-';
-                        const color = isAumento ? 'var(--info)' : 'var(--accent)';
-                        const label = isAumento ? 'Préstamo Extra' : 'Abono Recibido';
-                        return `<li><span>📅 ${h.date} - ${h.note} (${label})</span> <strong style="color:${color};">${sign}$${Number(h.amount).toFixed(2)}</strong></li>`;
-                    }).join('');
-
-                    historyHTML = `
-                        <div class="payment-history">
-                            <strong>Historial de Movimientos:</strong>
-                            <ul>${items}</ul>
-                        </div>
-                    `;
-                }
-
-                const div = document.createElement('div');
-                div.className = 'receivable-box';
-                div.innerHTML = `
-                    <div class="receivable-header">
-                        <span>👤 ${rec.debtor}</span>
-                        <div style="display: flex; gap: 4px;">
-                            <button class="add-btn" onclick="increaseReceivable(${rec.id}, ${remaining}, ${original}, ${JSON.stringify(history || []).replace(/"/g, '&quot;')})">Prestar +</button>
-                            <button class="pay-btn" onclick="makeReceivablePayment(${rec.id}, ${remaining}, ${JSON.stringify(history || []).replace(/"/g, '&quot;')})">Cobrar</button>
-                            <button class="delete-btn" onclick="deleteReceivable(${rec.id})">&times;</button>
-                        </div>
-                    </div>
-                    <div class="receivable-details">
-                        <div>Por cobrar: <strong style="color:var(--accent);">$${remaining.toFixed(2)}</strong></div>
-                        <div>Original: <strong>$${original.toFixed(2)}</strong></div>
-                        ${dueDateHTML}
-                        <div>Motivo: <strong>${rec.note || 'Sin nota'}</strong></div>
-                    </div>
-                    ${historyHTML}
-                `;
-                container.appendChild(div);
-            });
-            document.getElementById('totalReceivableAmount').textContent = `$${totalRemainingReceivable.toFixed(2)}`;
-        }
-
-        function renderGoals() {
-            const container = document.getElementById('savingsGoalsList');
-            container.innerHTML = '';
-            if (savingsGoals.length === 0) {
-                container.innerHTML = '<div class="empty-state">No hay metas registradas</div>';
-                return;
-            }
-
-            savingsGoals.forEach(g => {
-                const current = Number(g.current_amount);
-                const target = Number(g.target_amount);
-                const percentage = Math.min(100, (current / target) * 100).toFixed(1);
-
-                const div = document.createElement('div');
-                div.className = 'goal-box';
-                div.innerHTML = `
-                    <div class="goal-header">
-                        <span>🎯 ${g.goal_name}</span>
-                        <div style="display: flex; gap: 6px;">
-                            <button class="pay-btn" onclick="addAmountToGoal(${g.id}, ${current}, ${target})">Aportar</button>
-                            <button class="delete-btn" onclick="deleteSavingsGoal(${g.id})">&times;</button>
-                        </div>
-                    </div>
-                    <div class="goal-details">
-                        <div>Ahorrado: <strong style="color:var(--accent);">$${current.toFixed(2)}</strong></div>
-                        <div>Objetivo: <strong>$${target.toFixed(2)}</strong></div>
-                    </div>
-                    <div style="font-size: 10px; color: var(--text-muted); margin-top: 6px; display: flex; justify-content: space-between;">
-                        <span>Progreso</span>
-                        <span>${percentage}%</span>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar-fill" style="width: ${percentage}%;"></div>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        function checkPaymentAlerts() {
-            const container = document.getElementById('alertContainer');
-            // Mantenemos las alertas de tarjetas y agregamos las de deudas/cobros
-            let existingContent = container.innerHTML; 
-            
-            const todayStr = new Date().toISOString().split('T')[0];
-            const todayDate = new Date(todayStr);
-
-            // 1. Alertas de Tarjetas de Crédito
-            if (creditCards.length > 0) {
-                const todayDay = new Date().getDate();
-                creditCards.forEach(card => {
-                    const daysUntilPay = card.pay_day - todayDay;
-                    let cardSpent = 0;
-                    transactions.forEach(t => {
-                        if(t.account === 'Tarjeta de Crédito' && t.credit_card_name === card.name) cardSpent += Number(t.amount);
-                    });
-
-                    if (cardSpent > 0) {
-                        if (daysUntilPay === 0) {
-                            const alertDiv = document.createElement('div');
-                            alertDiv.className = 'alert-banner danger';
-                            alertDiv.innerHTML = `<div class="alert-content">⚠️ <strong>¡DÍA DE PAGO T.CRÉDITO HOY!</strong> Tu tarjeta <strong>"${card.name}"</strong> vence hoy. Debes <strong>$${cardSpent.toFixed(2)}</strong>.</div><button class="alert-close" onclick="this.parentElement.remove()">&times;</button>`;
-                            container.appendChild(alertDiv);
-                        } else if (daysUntilPay > 0 && daysUntilPay <= 3) {
-                            const alertDiv = document.createElement('div');
-                            alertDiv.className = 'alert-banner';
-                            alertDiv.innerHTML = `<div class="alert-content">📢 <strong>Aviso T.Crédito:</strong> Faltan ${daysUntilPay} día(s) para pagar <strong>"${card.name}"</strong>. Debes <strong>$${cardSpent.toFixed(2)}</strong>.</div><button class="alert-close" onclick="this.parentElement.remove()">&times;</button>`;
-                            container.appendChild(alertDiv);
-                        }
-                    }
-                });
-            }
-
-            // 2. Alertas de Deudas Personales (Vencimientos)
-            personalDebts.forEach(debt => {
-                if (debt.due_date && Number(debt.remaining_amount) > 0) {
-                    const dueDate = new Date(debt.due_date);
-                    const diffTime = dueDate - todayDate;
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                    if (diffDays < 0) {
-                        const alertDiv = document.createElement('div');
-                        alertDiv.className = 'alert-banner danger';
-                        alertDiv.innerHTML = `<div class="alert-content">🚨 <strong>DEUDA VENCIDA:</strong> Tu pago a <strong>"${debt.creditor}"</strong> venció el ${debt.due_date}. Debes <strong>$${Number(debt.remaining_amount).toFixed(2)}</strong>.</div><button class="alert-close" onclick="this.parentElement.remove()">&times;</button>`;
-                        container.appendChild(alertDiv);
-                    } else if (diffDays === 0) {
-                        const alertDiv = document.createElement('div');
-                        alertDiv.className = 'alert-banner danger';
-                        alertDiv.innerHTML = `<div class="alert-content">⚠️ <strong>¡DEUDA VENCE HOY!</strong> Debes pagarle a <strong>"${debt.creditor}"</strong> hoy ($${Number(debt.remaining_amount).toFixed(2)}).</div><button class="alert-close" onclick="this.parentElement.remove()">&times;</button>`;
-                        container.appendChild(alertDiv);
-                    } else if (diffDays > 0 && diffDays <= 3) {
-                        const alertDiv = document.createElement('div');
-                        alertDiv.className = 'alert-banner';
-                        alertDiv.innerHTML = `<div class="alert-content">📢 <strong>Próximo vencimiento de deuda:</strong> Faltan ${diffDays} día(s) para pagarle a <strong>"${debt.creditor}"</strong> ($${Number(debt.remaining_amount).toFixed(2)}).</div><button class="alert-close" onclick="this.parentElement.remove()">&times;</button>`;
-                        container.appendChild(alertDiv);
-                    }
+        document.getElementById('btnToggleCam').addEventListener('click', () => {
+            iniciarEscaneoUniversal('readerVencimientos', 'btnCerrarCam', (codigo) => {
+                document.getElementById('codigoEscaneado').value = codigo;
+                codigoBarraGuardar.value = codigo;
+                const existente = productos.find(p => p.codigo === codigo);
+                if (existente) {
+                    document.getElementById('nombre').value = existente.nombre;
+                    document.getElementById('categoria').value = existente.categoria;
+                    document.getElementById('cantidadProducto').value = existente.cantidad || 1;
+                    if (existente.fecha_elaboracion) document.getElementById('fechaElaboracion').value = existente.fecha_elaboracion;
+                    document.getElementById('modoForm').textContent = `⚡ Autocompletado: ${existente.nombre}`;
+                } else {
+                    document.getElementById('modoForm').textContent = `Nuevo código: ${codigo}`;
                 }
             });
+        });
 
-            // 3. Alertas de Cuentas por Cobrar (Vencimientos)
-            receivables.forEach(rec => {
-                if (rec.due_date && Number(rec.remaining_amount) > 0) {
-                    const dueDate = new Date(rec.due_date);
-                    const diffTime = dueDate - todayDate;
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        document.getElementById('btnToggleCamSolicitud').addEventListener('click', () => {
+            iniciarEscaneoUniversal('readerSolicitudes', 'btnCerrarCamSolicitud', (codigo) => {
+                document.getElementById('solCodigo').value = codigo;
+                document.getElementById('solNombre').focus();
+            });
+        });
 
-                    if (diffDays < 0) {
-                        const alertDiv = document.createElement('div');
-                        alertDiv.className = 'alert-banner danger';
-                        alertDiv.innerHTML = `<div class="alert-content">🚨 <strong>COBRO VENCIDO:</strong> El plazo para que <strong>"${rec.debtor}"</strong> te pagara venció el ${rec.due_date}. Te debe <strong>$${Number(rec.remaining_amount).toFixed(2)}</strong>.</div><button class="alert-close" onclick="this.parentElement.remove()">&times;</button>`;
-                        container.appendChild(alertDiv);
-                    } else if (diffDays === 0) {
-                        const alertDiv = document.createElement('div');
-                        alertDiv.className = 'alert-banner';
-                        alertDiv.innerHTML = `<div class="alert-content">⚠️ <strong>¡DÍA DE COBRO HOY!</strong> <strong>"${rec.debtor}"</strong> debe pagarte hoy ($${Number(rec.remaining_amount).toFixed(2)}).</div><button class="alert-close" onclick="this.parentElement.remove()">&times;</button>`;
-                        container.appendChild(alertDiv);
-                    } else if (diffDays > 0 && diffDays <= 3) {
-                        const alertDiv = document.createElement('div');
-                        alertDiv.className = 'alert-banner';
-                        alertDiv.innerHTML = `<div class="alert-content">📢 <strong>Próximo cobro:</strong> Faltan ${diffDays} día(s) para la fecha límite de cobro a <strong>"${rec.debtor}"</strong> ($${Number(rec.remaining_amount).toFixed(2)}).</div><button class="alert-close" onclick="this.parentElement.remove()">&times;</button>`;
-                        container.appendChild(alertDiv);
-                    }
+        document.getElementById('btnToggleCamDestruccion').addEventListener('click', () => {
+            iniciarEscaneoUniversal('readerDestruccion', 'btnCerrarCamDestruccion', (codigo) => {
+                document.getElementById('desCodigo').value = codigo;
+                const encontrado = productos.find(p => p.codigo === codigo);
+                if (encontrado) {
+                    document.getElementById('desNombre').value = encontrado.nombre;
+                    document.getElementById('desCantidad').value = encontrado.cantidad || 1;
+                    if (encontrado.fecha_elaboracion) document.getElementById('desElaboracion').value = encontrado.fecha_elaboracion;
+                } else {
+                    document.getElementById('desNombre').focus();
                 }
             });
-        }
+        });
+
+        document.getElementById('btnCerrarCam').addEventListener('click', detenerCamaraUniversal);
+        document.getElementById('btnCerrarCamSolicitud').addEventListener('click', detenerCamaraUniversal);
+        document.getElementById('btnCerrarCamDestruccion').addEventListener('click', detenerCamaraUniversal);
     </script>
 </body>
 </html>
